@@ -17,6 +17,10 @@
     <script src="jquery-jvectormap-2.0.5.min.js"></script>
     <!--引入包含港澳台的中国地图数据库-->
     <script src="jquery-jvectormap-cn-merc.js"></script>
+    <!--引入车站点数据-->
+    <script src="data.js"></script>
+    <!--引入画路线脚本-->
+    <script src="drawLine.js"></script>
 </head>
 
 <body>
@@ -27,43 +31,52 @@
 
         // });
         $(function () {
+
+            setStationStyleByRank(station);
+
             $('#map').vectorMap({
                 map: 'cn_merc', // 中国地图
                 // backgroundColor: 'transparent',
                 zoomMin: 1, // 鼠标缩放时的最小比例
                 zoomMax: 10, // 鼠标缩放时的最大比例
-                focusOn: {
-                    x: 0.5,
-                    y: 0.1,
-                    scale: 1
-                },
                 regionStyle: {
                     initial: {
-                        fill: '#e5e5e5', // 地图颜色
-                        "fill-opacity": 1,
-                        stroke: 'none',
-                        "stroke-width": 0,
-                        "stroke-opacity": 1
+                        fill: 'white', // 地图颜色
+                        "fill-opacity": 1, // 地图透明度
+                        stroke: 'black', // 地图边界线颜色
+                        "stroke-width": 1,
+                        "stroke-opacity": 0.4
                     },
                     hover: {
-                        fill: '#1d1d1d', // 鼠标滑动至某省份的高亮颜色
-                        "fill-opacity": 0.8
+                        fill: 'red', // 鼠标滑动至某省份的高亮颜色
+                        "fill-opacity": 0.8,
                     },
-                    selected: {
-                        fill: 'yellow'
-                    },
+                    selected: {},
                     selectedHover: {}
                 },
                 markerStyle: {
                     initial: {
                         fill: '#fd8888', // 足迹位置的填充颜色
-                        stroke: '#fff' // 足迹位置的描边颜色
+                        stroke: '#fff', // 足迹位置的描边颜色
+                        r: 5
                     },
                     hover: {
                         fill: '#fd2020', // 鼠标滑动至足迹位置后的填充颜色
                         stroke: '#fff', // 鼠标滑动至足迹位置后的描边颜色
                         "fill-opacity": 0.8
                     }
+                },
+                markers: station,
+                onRegionTipShow: function () { },
+                onMarkerTipShow: function () { },
+                onViewportChange: function (e, scale) {
+                    drawAllLines(lines, station);
+                },
+                onResize: function () {
+                    drawAllLines(lines, station);
+                },
+                onInit: function () {
+                    drawAllLines(lines, station);
                 }
             });
         });
