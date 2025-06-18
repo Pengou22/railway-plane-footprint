@@ -38,17 +38,18 @@
                 map: 'cn_merc', // 中国地图
                 // backgroundColor: 'transparent',
                 zoomMin: 1, // 鼠标缩放时的最小比例
-                zoomMax: 10, // 鼠标缩放时的最大比例
+                zoomMax: 100, // 鼠标缩放时的最大比例
+                regionsSelectable: false,
                 regionStyle: {
                     initial: {
                         fill: 'white', // 地图颜色
                         "fill-opacity": 1, // 地图透明度
                         stroke: 'black', // 地图边界线颜色
-                        "stroke-width": 1,
+                        "stroke-width": 0.1,
                         "stroke-opacity": 0.4
                     },
                     hover: {
-                        fill: 'red', // 鼠标滑动至某省份的高亮颜色
+                        fill: 'white', // 鼠标滑动至某省份的高亮颜色
                         "fill-opacity": 0.8,
                     },
                     selected: {},
@@ -58,7 +59,6 @@
                     initial: {
                         fill: '#fd8888', // 足迹位置的填充颜色
                         stroke: '#fff', // 足迹位置的描边颜色
-                        r: 5
                     },
                     hover: {
                         fill: '#fd2020', // 鼠标滑动至足迹位置后的填充颜色

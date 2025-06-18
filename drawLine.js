@@ -85,8 +85,10 @@ function hideTooltip() {
 function setStationStyleByRank(station) {
     Object.values(station).forEach(function (item) {
         // 根据 rank 设置 style
-        if (item.rank === 1) {
-            item.style = { r: 10, fill: '#fd2020', stroke: '#000' };
+        if (item.rank === 0) {
+            item.style = { r: 0, fill: '#fd2020', stroke: '#000' };
+        } else if (item.rank === 1) {
+            item.style = { r: 6, fill: '#fd2020', stroke: '#000' };
         } else if (item.rank === 2) {
             item.style = { r: 8, fill: '#fd8888', stroke: '#333' };
         } else {
