@@ -13,10 +13,9 @@ if (!self.__WB_pmw) { self.__WB_pmw = function (obj) { this.__WB_source = obj; r
   jQuery.fn.vectorMap('addMap', 'cn_merc', {
     "insets": [
       {
-        "width": 773.5,
+        "width": 774,
         // "width": 900,
-        "height": 601,
-        // "height": 568.68,
+        "height": 599,
         // "height": 701.85953329453,
         "top": 0,
         "left": 0,

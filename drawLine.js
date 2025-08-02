@@ -29,7 +29,7 @@ function drawAllLines(lines, station) {
             lineElem.setAttribute('y1', p1.y);
             lineElem.setAttribute('x2', p2.x);
             lineElem.setAttribute('y2', p2.y);
-            lineElem.setAttribute('stroke', 'blue');
+            lineElem.setAttribute('stroke', '#2C74B3');
             lineElem.setAttribute('stroke-width', 3);
             lineElem.setAttribute('opacity', 0.7);
             group.appendChild(lineElem);
