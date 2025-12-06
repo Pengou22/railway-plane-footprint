@@ -1,102 +1,183 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>橘猫空铁足迹地图</title>
-    <!-- SVG 图标 -->
-    <link rel="icon" href="images/favicon.svg" type="image/svg+xml" />
-
-    <!--引入样式表-->
-    <link
-      rel="stylesheet"
-      href="jquery-jvectormap-2.0.5.css"
-      type="text/css"
-      media="screen"
-    />
-    <link rel="stylesheet" href="styles.css" />
-    <!--引入jQuery框架-->
-    <script src="jquery-3.7.1.js"></script>
-    <!--引入jVectorMap库-->
-    <script src="jquery-jvectormap-2.0.5.min.js"></script>
-    <!--引入包含港澳台的中国地图数据库-->
-    <script src="jquery-jvectormap-cn-merc.js"></script>
-    <!--引入车站点数据-->
-    <script src="data.js"></script>
-    <!--引入画路线脚本-->
-    <script src="drawLine.js"></script>
+    <title>铁路历史足迹地图</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: url("images/background.png") no-repeat center center fixed;
+        background-size: cover; /* 拉伸至全屏 */
+      }
+      #china-map {
+        width: 100%;
+        height: 100vh;
+      }
+    </style>
   </head>
-
   <body>
-    <div id="map"></div>
+    <div id="china-map"></div>
+
+    <!-- 引入 ECharts -->
+    <script src="js/echarts.js"></script>
+    <!-- 引入中国地图数据 -->
+    <script src="js/china.js"></script>
+
     <script>
-      // $(function () {
-      //     $('#map').vectorMap({ map: 'cn_merc' });
+      let chart = echarts.init(document.getElementById("china-map"));
 
-      // });
-      $(function () {
-        setStationStyleByRank(station);
+      // 1. 加载 stations.json 和 trains.json
+      Promise.all([
+        fetch("json/stations.json").then((response) => response.json()),
+        fetch("json/trains.json").then((response) => response.json()),
+      ])
+        .then(([stations, trains]) => {
+          // 2. 计算每个车站的出现次数
+          let stationCounts = {};
 
-        $("#map").vectorMap({
-          map: "cn_merc", // 中国地图
-          backgroundColor: "transparent", //背景设置透明
-          zoomMin: 1, // 鼠标缩放时的最小比例
-          zoomMax: 100, // 鼠标缩放时的最大比例
-          regionsSelectable: false,
-          regionStyle: {
-            initial: {
-              fill: "#FFFFFF", // 地图颜色
-              "fill-opacity": 0.8, // 地图透明度
-              stroke: "black", // 地图边界线颜色
-              "stroke-width": 1,
-              "stroke-opacity": 0.5,
-            },
-            hover: {
-              fill: "#FFB4B4", // 鼠标滑动至某省份的高亮颜色
-              "fill-opacity": 0.8,
-            },
-            selected: {},
-            selectedHover: {},
-          },
-          markerStyle: {
-            initial: {
-              fill: "#fd8888", // 足迹位置的填充颜色
-              stroke: "#fff", // 足迹位置的描边颜色
-            },
-            hover: {
-              fill: "#fd2020", // 鼠标滑动至足迹位置后的填充颜色
-              stroke: "#fff", // 鼠标滑动至足迹位置后的描边颜色
-              "fill-opacity": 0.8,
-            },
-          },
-          markers: station,
-          onRegionTipShow: function () {},
-          onMarkerTipShow: function () {},
-          onViewportChange: function (e, scale) {
-            drawAllLines(lines, station);
-          },
-          onResize: function () {
-            drawAllLines(lines, station);
-          },
-          onInit: function () {
-            // 插入 SVG <defs> 轨道贴图
-            var svg = $("#map svg")[0];
-            if (svg && !svg.querySelector("#imgPattern")) {
-              var defs = document.createElementNS(
-                "http://www.w3.org/2000/svg",
-                "defs"
-              );
-              defs.innerHTML = `
-                    <pattern id="imgPattern" patternUnits="userSpaceOnUse" width="20" height="20">
-                        <image href="images/logo.png" x="0" y="0" width="20" height="20"/>
-                    </pattern>
-                `;
-              svg.insertBefore(defs, svg.firstChild);
+          trains.forEach((train) => {
+            const route = train.route;
+            // 起点和终点加 1 次
+            stationCounts[route[0]] = (stationCounts[route[0]] || 0) + 1;
+            stationCounts[route[route.length - 1]] =
+              (stationCounts[route[route.length - 1]] || 0) + 1;
+          });
+
+          // 3. 准备绘制地图
+          let seriesData = [];
+          let pairCount = new Map();
+
+          // 车次的线路（通过车站坐标来连接）
+          trains.forEach((train) => {
+            let lineData = [];
+
+            train.route.forEach((station) => {
+              // eg: train.route = ["tna", "hch", "cqx"]
+              if (stations[station]) {
+                lineData.push(stations[station].LatLng); // 获取车站的坐标
+              }
+            });
+
+            // 确保线路数据大于 1，才绘制
+            if (lineData.length > 1) {
+              const start = lineData[0];
+              const end = lineData[lineData.length - 1];
+              // 用字符串作为 key，例如: "35.3,118.9 -> 31.2,121.5"
+              const key = `${start.toString()}->${end.toString()}`;
+              // 更新计数
+              const count = pairCount.get(key) || 0;
+              pairCount.set(key, count + 1);
+              // curveness 从 0.3 开始，每重复一次 +0.03
+              const curveness = 0.3 + count * 0.05;
+
+              // 绘制每条线路
+              seriesData.push({
+                type: "lines",
+                coordinateSystem: "geo", // 使用 geo 坐标系
+                // polyline: true, // 允许多点折线
+                smooth: true, // 平滑曲线
+                data: [
+                  {
+                    name: train.information,
+                    coords: [start, end],
+                  },
+                ],
+                effect: {
+                  show: true,
+                  period: Math.floor(Math.random() * 5) + 4, // 动画周期
+                  trailLength: 0.2, // 是否有拖尾
+                  symbol: "arrow", // 箭头
+                  symbolSize: 10, // 箭头大小
+                },
+                lineStyle: {
+                  width: 3,
+                  opacity: 0.9,
+                  curveness: curveness,
+                  color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
+                    { offset: 0, color: "#00f5ff" },
+                    { offset: 1, color: "#0077ff" },
+                  ]),
+                },
+              });
             }
-            drawAllLines(lines, station);
-          },
+          });
+
+          // 4. 准备车站标记的点数据
+          let stationData = [];
+
+          Object.keys(stations).forEach((station) => {
+            // eg:station = 'tna', stations[station] = { "LatLng": [105.88, 30.22], "name": "潼南"}
+
+            if (stationCounts[station] >= 1) {
+              stationData.push({
+                type: "scatter",
+                coordinateSystem: "geo", // 使用 geo 坐标系
+                data: [
+                  {
+                    name: stations[station].name,
+                    value: stations[station].LatLng,
+                  },
+                ],
+                symbol: "pin",
+                symbolSize: Math.log(stationCounts[station] + 1) * 10, // 根据出现次数调整大小
+                label: {
+                  formatter: "{b}", // 显示车站名称
+                  position: "top",
+                  show: true,
+                  fontSize: "10",
+                },
+                itemStyle: {
+                  color: "#f13434", // 设置颜色为红色
+                  borderColor: "#f13434", // 边框颜色
+                  borderWidth: 2, // 边框宽度
+                  shadowBlur: 10, // 阴影模糊程度
+                  shadowColor: "#999", // 阴影颜色
+                },
+                zlevel: 1,
+              });
+            }
+          });
+
+          // 5. 设置 ECharts 配置
+          const option = {
+            backgroundColor: "transparent", // 深色背景（科技感）
+
+            geo: {
+              map: "china",
+              roam: true,
+              zoom: 1.2,
+
+              itemStyle: {
+                areaColor: "#081c34", // 你需要的稍黑蓝色
+                borderColor: "#8a8aff", // 荧光蓝紫边界
+                borderWidth: 1.2,
+                shadowBlur: 10,
+                shadowColor: "rgba(0, 150, 255, 0.4)", // 发光边缘
+                opacity: 0.8,
+              },
+
+              emphasis: {
+                itemStyle: {
+                  // 鼠标 hover 的高亮色：亮青蓝
+                  areaColor: "#1f6feb",
+                },
+              },
+            },
+
+            series: [
+              ...seriesData, // 车次曲线
+              ...stationData, // 车站点（保持你已有的设置）
+            ],
+          };
+
+          // 6. 使用配置项填充图表
+          chart.setOption(option);
+        })
+        .catch((error) => {
+          console.error("加载数据失败:", error);
         });
-      });
     </script>
   </body>
 </html>

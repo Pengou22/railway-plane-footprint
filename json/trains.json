@@ -1,0 +1,187 @@
+[
+    {
+        "information": "G6037",
+        "time": "2025-07-30",
+        "route": ["gzn", "hme", "szb", "szs"]
+    },
+    {
+        "information": "G6022",
+        "time": "2025-07-28",
+        "route": ["szb", "hme", "gzn"]
+    },
+    {
+        "information": "G6022",
+        "time": "2025-07-26",
+        "route": ["xgxjl", "szb"]
+    },
+    {
+        "information": "G5625",
+        "time": "2025-07-26",
+        "route": ["szb", "xgxjl"]
+    },
+    {
+        "information": "K91",
+        "time": "2025-07-22",
+        "route": ["hfe", "tch", "hni", "jji", "nch", "gzh", "lch", "hyu", "hzh", "dgd", "szd"]
+    },
+    {
+        "information": "G600",
+        "time": "2025-07-19",
+        "route": ["wha", "hfn"]
+    },
+    {
+        "information": "G880",
+        "time": "2025-07-15",
+        "route": ["szb", "hme", "gzn", "csn", "wha"]
+    },
+    {
+        "information": "G305",
+        "time": "2025-04-20",
+        "route": ["gzn", "hme", "szb"]
+    },
+    {
+        "information": "G6028",
+        "time": "2025-04-18",
+        "route": ["szb", "hme", "gzn"]
+    },
+    {
+        "information": "G2965",
+        "time": "2025-02-19",
+        "route": ["cqx", "zyi", "gyd", "glx", "gzn", "hme", "szb"]
+    },
+    {
+        "information": "D5160",
+        "time": "2024-02-19",
+        "route": ["tna", "hch", "cqx"]
+    },
+    {
+        "information": "G2882",
+        "time": "2025-01-18",
+        "route": ["gyb", "zyi", "cqx"]
+    },
+    {
+        "information": "G3708",
+        "time": "2025-01-18",
+        "route": ["gzn", "glx", "gyd", "gyb"]
+    },
+    {
+        "information": "G2908",
+        "time": "2025-01-18",
+        "route": ["szb", "hme", "gzn"]
+    },
+    {
+        "information": "Y754",
+        "time": "2024-09-17",
+        "route": ["lji", "dli", "kmi"],
+        "comment": "搭乘丽江至昆明的Y字头旅游专列"
+    },
+    {
+        "information": "C124",
+        "time": "2024-09-17",
+        "route": ["xgl", "lji"]
+    },
+    {
+        "information": "Y752",
+        "time": "2024-09-13",
+        "route": ["kmi", "dli", "lji"],
+        "comment": "搭乘昆明至丽江的Y字头旅游专列"
+    },
+    {
+        "information": "G2976",
+        "time": "2024-09-13",
+        "route": ["szb", "hme", "gzn", "glx", "gyd", "gyb", "kmi"]
+    },
+    {
+        "information": "G2965",
+        "time": "2024-08-24",
+        "route": ["cqx", "zyi", "gyd", "glx", "gzn", "hme", "szb"]
+    },
+    {
+        "information": "D5160",
+        "time": "2024-08-24",
+        "route": ["tna", "hch", "cqx"]
+    },
+    {
+        "information": "C78",
+        "time": "2024-08-21",
+        "route": ["cdd", "sni", "tna"]
+    },
+    {
+        "information": "G1888",
+        "time": "2024-08-20",
+        "route": ["cqx", "ycd", "rcb", "njb", "zyb", "cdd", "ghb"],
+        "comment": "非常吉利的高铁车次以及第一次经过成渝高铁全线"
+    },
+    {
+        "information": "C80",
+        "time": "2024-08-18",
+        "route": ["hch", "cqx"]
+    },
+    {
+        "information": "K988",
+        "time": "2024-08-02",
+        "route": ["xni", "lzh", "hdp", "gyu", "hch", "cqx"],
+        "comment": "兰渝铁路全线返程"
+    },
+    {
+        "information": "D155",
+        "time": "2024-07-29",
+        "route": ["cqb", "hch", "gyu", "hdp", "lzh", "xni"],
+        "comment": "经过兰渝铁路全线"
+    },
+    {
+        "information": "G2944",
+        "time": "2024-07-18",
+        "route": ["szb", "hme", "gzn", "glx", "gyd", "zyi", "cqx"]
+    },
+    {
+        "information": "G2943",
+        "time": "2024-03-02",
+        "route": ["cqx", "zyi", "gyd", "glx", "gzn", "hme", "szb"]
+    },
+    {
+        "information": "G2942",
+        "time": "2024-02-07",
+        "route": ["szb", "hme", "gzn", "glx", "gyd", "zyi", "cqx"]
+    },
+    {
+        "information": "G1021",
+        "time": "2024-01-19",
+        "route": ["gzn", "hme", "szb"]
+    },
+    {
+        "information": "G6582",
+        "time": "2024-01-18",
+        "route": ["szb", "hme", "gzn"]
+    },
+    {
+        "information": "G5608",
+        "time": "2023-11-18",
+        "route": ["xgxjl", "szb"]
+    },
+    {
+        "information": "G5615",
+        "time": "2023-11-18",
+        "route": ["szb", "xgxjl"]
+    },
+    {
+        "information": "G2709",
+        "time": "2023-07-09",
+        "route": ["hyd", "szb"]
+    },
+    {
+        "information": "K446",
+        "time": "2023-07-08",
+        "route": ["szd", "dgd", "hzh", "hyu"]
+    },
+    {
+        "information": "G2903",
+        "time": "2023-04-15",
+        "route": ["gzn", "hme", "szb"]
+    },
+    {
+        "information": "G6510",
+        "time": "2023-04-14",
+        "route": ["szb", "hme", "gzn"]
+    }
+]
