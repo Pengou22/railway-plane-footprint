@@ -8,7 +8,7 @@
       body {
         margin: 0;
         padding: 0;
-        background: url("images/background.png") no-repeat center center fixed;
+        background: url("images/000046.jpg") no-repeat center center fixed;
         background-size: cover; /* 拉伸至全屏 */
       }
       #china-map {
@@ -35,53 +35,60 @@
       ])
         .then(([stations, trains]) => {
           // 2. 计算每个车站的出现次数
-          let stationCounts = {};
+          let stationsCount = {};
 
           trains.forEach((train) => {
             const route = train.route;
             // 起点和终点加 1 次
-            stationCounts[route[0]] = (stationCounts[route[0]] || 0) + 1;
-            stationCounts[route[route.length - 1]] =
-              (stationCounts[route[route.length - 1]] || 0) + 1;
+            stationsCount[route[0]] = (stationsCount[route[0]] || 0) + 1;
+            stationsCount[route[route.length - 1]] =
+              (stationsCount[route[route.length - 1]] || 0) + 1;
           });
 
-          // 3. 准备绘制地图
-          let seriesData = [];
-          let pairCount = new Map();
+          // 3. 准备车次路线的线数据
+          let trainsData = [];
+          let trainsCount = new Map();
 
           // 车次的线路（通过车站坐标来连接）
           trains.forEach((train) => {
-            let lineData = [];
+            let trainData = [];
 
             train.route.forEach((station) => {
               // eg: train.route = ["tna", "hch", "cqx"]
               if (stations[station]) {
-                lineData.push(stations[station].LatLng); // 获取车站的坐标
+                trainData.push(stations[station].LatLng); // 获取车站的坐标
               }
             });
 
             // 确保线路数据大于 1，才绘制
-            if (lineData.length > 1) {
-              const start = lineData[0];
-              const end = lineData[lineData.length - 1];
+            if (trainData.length > 1) {
+              const start = trainData[0];
+              const end = trainData[trainData.length - 1];
               // 用字符串作为 key，例如: "35.3,118.9 -> 31.2,121.5"
               const key = `${start.toString()}->${end.toString()}`;
               // 更新计数
-              const count = pairCount.get(key) || 0;
-              pairCount.set(key, count + 1);
-              // curveness 从 0.3 开始，每重复一次 +0.03
+              const count = trainsCount.get(key) || 0;
+              trainsCount.set(key, count + 1);
+              // curveness 为曲线弯曲度，从 0.3 开始，每重复一次加一个固定的增量
               const curveness = 0.3 + count * 0.05;
 
               // 绘制每条线路
-              seriesData.push({
+              trainsData.push({
                 type: "lines",
                 coordinateSystem: "geo", // 使用 geo 坐标系
                 // polyline: true, // 允许多点折线
                 smooth: true, // 平滑曲线
                 data: [
                   {
-                    name: train.information,
+                    name: train.code,
                     coords: [start, end],
+                    info: {
+                      code: train.code,
+                      time: train.time,
+                      start: stations[train.route[0]].name,
+                      end: stations[train.route[train.route.length - 1]].name,
+                      information: train.information,
+                    },
                   },
                 ],
                 effect: {
@@ -105,13 +112,13 @@
           });
 
           // 4. 准备车站标记的点数据
-          let stationData = [];
+          let stationsData = [];
 
           Object.keys(stations).forEach((station) => {
             // eg:station = 'tna', stations[station] = { "LatLng": [105.88, 30.22], "name": "潼南"}
 
-            if (stationCounts[station] >= 1) {
-              stationData.push({
+            if (stationsCount[station] >= 1) {
+              stationsData.push({
                 type: "scatter",
                 coordinateSystem: "geo", // 使用 geo 坐标系
                 data: [
@@ -121,7 +128,7 @@
                   },
                 ],
                 symbol: "pin",
-                symbolSize: Math.log(stationCounts[station] + 1) * 10, // 根据出现次数调整大小
+                symbolSize: Math.log(stationsCount[station] + 1) * 10, // 根据出现次数调整大小
                 label: {
                   formatter: "{b}", // 显示车站名称
                   position: "top",
@@ -148,6 +155,10 @@
               map: "china",
               roam: true,
               zoom: 1.2,
+              scaleLimit: {
+                min: 1, // 最小缩放倍数（不能再缩小）
+                max: 100, // 最大缩放倍数（不能无限放大）
+              },
 
               itemStyle: {
                 areaColor: "#081c34", // 你需要的稍黑蓝色
@@ -165,10 +176,27 @@
                 },
               },
             },
+            tooltip: {
+              trigger: "item",
+              formatter: function (params) {
+                // 只对线路生效
+                if (params.seriesType === "lines") {
+                  const info = params.data.info;
+                  return `
+                    车次：${info.code}<br/>
+                    时间：${info.time}<br/>
+                    起点：${info.start}<br/>
+                    终点：${info.end}<br/>
+                    ${info.information ? `记录：${info.information}` : ""}
+                  `;
+                }
+                return params.name;
+              },
+            },
 
             series: [
-              ...seriesData, // 车次曲线
-              ...stationData, // 车站点（保持你已有的设置）
+              ...trainsData, // 车次曲线
+              ...stationsData, // 车站点（保持你已有的设置）
             ],
           };
 
