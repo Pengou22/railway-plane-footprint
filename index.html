@@ -28,13 +28,13 @@
     <script>
       let chart = echarts.init(document.getElementById("china-map"));
 
-      // 1. 加载 stations.json 和 trains.json
+      // ----------加载 stations.json 和 trains.json----------
       Promise.all([
         fetch("json/stations.json").then((response) => response.json()),
         fetch("json/trains.json").then((response) => response.json()),
       ])
         .then(([stations, trains]) => {
-          // 2. 计算每个车站的出现次数
+          // 计算每个车站的出现次数
           let stationsCount = {};
 
           trains.forEach((train) => {
@@ -45,7 +45,7 @@
               (stationsCount[route[route.length - 1]] || 0) + 1;
           });
 
-          // 3. 准备车次路线的线数据
+          // ----------准备车次路线的线数据----------
           let trainsData = [];
           let trainsCount = new Map();
 
@@ -76,7 +76,6 @@
               trainsData.push({
                 type: "lines",
                 coordinateSystem: "geo", // 使用 geo 坐标系
-                // polyline: true, // 允许多点折线
                 smooth: true, // 平滑曲线
                 data: [
                   {
@@ -107,16 +106,33 @@
                     { offset: 1, color: "#0077ff" },
                   ]),
                 },
+                tooltip: {
+                  show: true,
+                },
               });
             }
           });
 
-          // 4. 准备车站标记的点数据
+          // ----------准备车站标记的点数据----------
           let stationsData = [];
+          const morandiColors = [
+            "#B95756", // 柔砖红
+            "#E4745E", // 珊瑚红
+            "#CA774B", // 焦糖橙
+            "#EC8F3F", // 杏橙
+            "#A87153", // 暖棕
+            "#82ABA3", // 莫兰迪青
+            "#66828E", // 灰蓝
+            "#586D80", // 钢蓝
+            "#8E9AAB", // 雾蓝
+            "#97A5C0", // 淡紫蓝
+          ];
 
           Object.keys(stations).forEach((station) => {
             // eg:station = 'tna', stations[station] = { "LatLng": [105.88, 30.22], "name": "潼南"}
 
+            const color =
+              morandiColors[Math.floor(Math.random() * morandiColors.length)];
             if (stationsCount[station] >= 1) {
               stationsData.push({
                 type: "scatter",
@@ -131,7 +147,7 @@
                 symbolSize: Math.log(stationsCount[station] + 1) * 10, // 根据出现次数调整大小
                 label: {
                   formatter: "{b}", // 显示车站名称
-                  position: "top",
+                  position: "bottom",
                   show: true,
                   fontSize: "10",
                 },
@@ -143,13 +159,65 @@
                   shadowColor: "#999", // 阴影颜色
                 },
                 zlevel: 1,
+                emphasis: {
+                  scale: 1.5, // 鼠标悬停时放大
+                  itemStyle: {
+                    shadowBlur: 20, // 阴影范围
+                    shadowColor: "rgba(0,0,0,0.4)",
+                  },
+                },
               });
             }
           });
 
-          // 5. 设置 ECharts 配置
+          // ----------设置 ECharts 配置----------
+          // 省份颜色配置
+          const provinceColors = {
+            // 华北
+            北京: { normal: "#BECBD3", hover: "#8E9BAE" },
+            天津: { normal: "#DCDDDF", hover: "#B6BBBE" },
+            河北: { normal: "#DDD0C8", hover: "#A39183" },
+            山西: { normal: "#EAE0D7", hover: "#CFC3BC" },
+            内蒙古: { normal: "#C6CCC0", hover: "#8A9585" },
+            // 东北
+            辽宁: { normal: "#CCD2CC", hover: "#737C75" },
+            吉林: { normal: "#D6E1D7", hover: "#A1B0AD" },
+            黑龙江: { normal: "#BFD1C4", hover: "#82ABA3" },
+            // 华东
+            上海: { normal: "#E3E7EA", hover: "#9DA8AF" },
+            江苏: { normal: "#DBD2C9", hover: "#A39087" },
+            浙江: { normal: "#E3D0CC", hover: "#AB8C83" },
+            安徽: { normal: "#F4EBE4", hover: "#D2CABF" },
+            福建: { normal: "#F2DBD5", hover: "#CBA29E" },
+            江西: { normal: "#EBC2C0", hover: "#B87F78" },
+            山东: { normal: "#D7CDD5", hover: "#A392A2" },
+            // 华南
+            河南: { normal: "#E0DFE4", hover: "#8D8FA4" },
+            湖北: { normal: "#CFC3BC", hover: "#A08887" },
+            湖南: { normal: "#E6DEDC", hover: "#C0B0A2" },
+            广东: { normal: "#D6DCDB", hover: "#82898D" },
+            广西: { normal: "#C1CCC7", hover: "#93A3A0" },
+            海南: { normal: "#E6F1ED", hover: "#A8B2AA" },
+            // 西南
+            重庆: { normal: "#D4C3AA", hover: "#A39183" },
+            四川: { normal: "#EDDFC4", hover: "#B5AF5A" },
+            贵州: { normal: "#D1D3C5", hover: "#737C75" },
+            云南: { normal: "#DEE1CB", hover: "#93A3A0" },
+            西藏: { normal: "#EEF1EA", hover: "#ADB5AB" },
+            // 西北
+            陕西: { normal: "#C5BDB2", hover: "#908982" },
+            甘肃: { normal: "#D2CABF", hover: "#A09952" },
+            青海: { normal: "#EEDAC0", hover: "#BFBC9D" },
+            宁夏: { normal: "#D6D9B9", hover: "#C0C182" },
+            新疆: { normal: "#F3F4D5", hover: "#CDDAA5" },
+            // 港澳台
+            香港: { normal: "#E8D8D7", hover: "#B87F78" },
+            澳门: { normal: "#F9ECE4", hover: "#CBA29E" },
+            台湾: { normal: "#E0DFE4", hover: "#8D8FA4" },
+          };
+
           const option = {
-            backgroundColor: "transparent", // 深色背景（科技感）
+            backgroundColor: "transparent", // 透明背景
 
             geo: {
               map: "china",
@@ -160,20 +228,25 @@
                 max: 100, // 最大缩放倍数（不能无限放大）
               },
 
-              itemStyle: {
-                areaColor: "#081c34", // 你需要的稍黑蓝色
-                borderColor: "#8a8aff", // 荧光蓝紫边界
-                borderWidth: 1.2,
-                shadowBlur: 10,
-                shadowColor: "rgba(0, 150, 255, 0.4)", // 发光边缘
-                opacity: 0.8,
-              },
-
-              emphasis: {
+              regions: Object.keys(provinceColors).map((name) => ({
+                name,
                 itemStyle: {
-                  // 鼠标 hover 的高亮色：亮青蓝
-                  areaColor: "#1f6feb",
+                  areaColor: provinceColors[name].normal,
+                  opacity: 0.8,
                 },
+                emphasis: {
+                  itemStyle: {
+                    areaColor: provinceColors[name].normal,
+                    opacity: 1,
+                    shadowBlur: 15, // 阴影范围
+                    shadowColor: "rgba(0,0,0,0.6)", // 黑色阴影
+                    borderColor: "rgba(0,0,0,0.6)", // 黑色描边
+                    borderWidth: 1.5,
+                  },
+                },
+              })),
+              tooltip: {
+                show: false,
               },
             },
             tooltip: {
