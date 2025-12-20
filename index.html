@@ -35,10 +35,12 @@
         fetch("json/stations.json").then((response) => response.json()),
         fetch("json/trains.json").then((response) => response.json()),
         fetch("json/flights.json").then((response) => response.json()),
+        fetch("json/airports.json").then((response) => response.json()),
       ])
-        .then(([stations, trains, flights]) => {
-          // 计算每个车站的出现次数
+        .then(([stations, trains, flights, airports]) => {
+          // 计算每个车站、机场的出现次数
           let stationsCount = {};
+          let airportsCount = {};
 
           trains.forEach((train) => {
             const route = train.route;
@@ -51,9 +53,9 @@
           flights.forEach((flight) => {
             const route = flight.route;
             // 起点和终点加 1 次
-            stationsCount[route[0]] = (stationsCount[route[0]] || 0) + 1;
-            stationsCount[route[route.length - 1]] =
-              (stationsCount[route[route.length - 1]] || 0) + 1;
+            airportsCount[route[0]] = (airportsCount[route[0]] || 0) + 1;
+            airportsCount[route[route.length - 1]] =
+              (airportsCount[route[route.length - 1]] || 0) + 1;
           });
 
           // ----------准备车次路线的线数据----------
@@ -130,10 +132,10 @@
 
           flights.forEach((flight) => {
             let flightData = [];
-            flight.route.forEach((station) => {
+            flight.route.forEach((airport) => {
               // eg: flight.route = ["cqjb", "szba"]
-              if (stations[station]) {
-                flightData.push(stations[station].LatLng); // 获取车站的坐标
+              if (airports[airport]) {
+                flightData.push(airports[airport].LatLng); // 获取机场的坐标
               }
             });
 
@@ -161,8 +163,8 @@
                     info: {
                       code: flight.code,
                       time: flight.time,
-                      start: stations[flight.route[0]].name,
-                      end: stations[flight.route[flight.route.length - 1]].name,
+                      start: airports[flight.route[0]].name,
+                      end: airports[flight.route[flight.route.length - 1]].name,
                       information: flight.information,
                     },
                   },
@@ -206,8 +208,50 @@
                     value: stations[station].LatLng,
                   },
                 ],
-                symbol: "pin",
+                symbol: "image://./images/火车站.png",
                 symbolSize: Math.log(stationsCount[station] + 1) * 10, // 根据出现次数调整大小
+                label: {
+                  formatter: "{b}", // 显示车站名称
+                  position: "bottom",
+                  show: true,
+                  fontSize: "10",
+                },
+                itemStyle: {
+                  color: "#f13434", // 设置颜色为红色
+                  borderColor: "#f13434", // 边框颜色
+                  borderWidth: 2, // 边框宽度
+                  shadowBlur: 10, // 阴影模糊程度
+                  shadowColor: "#999", // 阴影颜色
+                },
+                zlevel: 1,
+                emphasis: {
+                  scale: 1.5, // 鼠标悬停时放大
+                  itemStyle: {
+                    shadowBlur: 20, // 阴影范围
+                    shadowColor: "rgba(0,0,0,0.4)",
+                  },
+                },
+              });
+            }
+          });
+
+          // ----------准备机场标记的点数据----------
+          let airportsData = [];
+
+          Object.keys(airports).forEach((airport) => {
+            // eg:airport = 'cqjb', airports[airport] = { "LatLng": [106.66, 29.72], "name": "重庆江北"}
+            if (airportsCount[airport] >= 1) {
+              airportsData.push({
+                type: "scatter",
+                coordinateSystem: "geo", // 使用 geo 坐标系
+                data: [
+                  {
+                    name: airports[airport].name,
+                    value: airports[airport].LatLng,
+                  },
+                ],
+                symbol: "image://./images/飞机场.png",
+                symbolSize: Math.log(airportsCount[airport] + 1) * 10, // 根据出现次数调整大小
                 label: {
                   formatter: "{b}", // 显示车站名称
                   position: "bottom",
@@ -289,6 +333,7 @@
               ...trainsData, // 火车车次曲线
               ...stationsData, // 车站点（保持你已有的设置）
               ...flightsData, // 飞机航班曲线
+              ...airportsData, // 机场点（保持你已有的设置）
             ],
           };
 
