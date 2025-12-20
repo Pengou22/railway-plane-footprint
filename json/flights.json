@@ -1,0 +1,32 @@
+[
+    {
+        "code": "CZ3564",
+        "time": "2025-09-06",
+        "route": ["shhq", "szba"]
+    },
+    {
+        "code": "CZ3965",
+        "time": "2025-09-05",
+        "route": ["szba", "shhq"]
+    },
+    {
+        "code": "ZH9452",
+        "time": "2024-09-18",
+        "route": ["kmcs", "szba"]
+    },
+    {
+        "code": "CZ3456",
+        "time": "2023-08-26",
+        "route": ["cqjb", "szba"]
+    },
+    {
+        "code": "CZ3455",
+        "time": "2023-07-14",
+        "route": ["szba", "cqjb"]
+    },
+    {
+        "code": "Y87537",
+        "time": "2022-12-15",
+        "route": ["szba", "cqjb"]
+    }
+]

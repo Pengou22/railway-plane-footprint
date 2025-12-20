@@ -40,3 +40,8 @@ A website that records the history of railway and plane journeys.
 ### 2025-12-16
 
 给每个省份不同的填色，全部选用莫兰迪色系。
+
+### 2025-12-20
+
+每条线路新增相应的高铁、动车、火车图标，并且将飞机航班加入进来。
+同时将一些函数放入utils.js，做好文件分割管理。

@@ -24,6 +24,8 @@
     <script src="js/echarts.js"></script>
     <!-- 引入中国地图数据 -->
     <script src="js/china.js"></script>
+    <!-- 引入自定义工具脚本 -->
+    <script src="js/utils.js"></script>
 
     <script>
       let chart = echarts.init(document.getElementById("china-map"));
@@ -32,8 +34,9 @@
       Promise.all([
         fetch("json/stations.json").then((response) => response.json()),
         fetch("json/trains.json").then((response) => response.json()),
+        fetch("json/flights.json").then((response) => response.json()),
       ])
-        .then(([stations, trains]) => {
+        .then(([stations, trains, flights]) => {
           // 计算每个车站的出现次数
           let stationsCount = {};
 
@@ -45,11 +48,19 @@
               (stationsCount[route[route.length - 1]] || 0) + 1;
           });
 
+          flights.forEach((flight) => {
+            const route = flight.route;
+            // 起点和终点加 1 次
+            stationsCount[route[0]] = (stationsCount[route[0]] || 0) + 1;
+            stationsCount[route[route.length - 1]] =
+              (stationsCount[route[route.length - 1]] || 0) + 1;
+          });
+
           // ----------准备车次路线的线数据----------
           let trainsData = [];
           let trainsCount = new Map();
 
-          // 车次的线路（通过车站坐标来连接）
+          // 火车的线路（通过车站坐标来连接）
           trains.forEach((train) => {
             let trainData = [];
 
@@ -93,9 +104,75 @@
                 effect: {
                   show: true,
                   period: Math.floor(Math.random() * 5) + 4, // 动画周期
-                  trailLength: 0.2, // 是否有拖尾
-                  symbol: "arrow", // 箭头
-                  symbolSize: 10, // 箭头大小
+                  // trailLength: 0.2, // 是否有拖尾
+                  symbol: getTrainSymbol(train.code, start, end),
+                  symbolSize: 48, // 大小
+                },
+                lineStyle: {
+                  width: 3,
+                  opacity: 0.9,
+                  curveness: curveness,
+                  color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
+                    { offset: 0, color: "#00f5ff" },
+                    { offset: 1, color: "#0077ff" },
+                  ]),
+                },
+                tooltip: {
+                  show: true,
+                },
+              });
+            }
+          });
+
+          // 飞机的线路（通过车站坐标来连接）
+          let flightsData = [];
+          let flightsCount = new Map();
+
+          flights.forEach((flight) => {
+            let flightData = [];
+            flight.route.forEach((station) => {
+              // eg: flight.route = ["cqjb", "szba"]
+              if (stations[station]) {
+                flightData.push(stations[station].LatLng); // 获取车站的坐标
+              }
+            });
+
+            // 确保线路数据大于 1，才绘制
+            if (flightData.length > 1) {
+              const start = flightData[0];
+              const end = flightData[flightData.length - 1];
+              // 用字符串作为 key，例如: "35.3,118.9 -> 31.2,121.5"
+              const key = `${start.toString()}->${end.toString()}`;
+              // 更新计数
+              const count = flightsCount.get(key) || 0;
+              flightsCount.set(key, count + 1);
+              // curveness 为曲线弯曲度，从 0.3 开始，每重复一次加一个固定的增量
+              const curveness = 0.3 + count * 0.05;
+
+              // 绘制每条线路
+              flightsData.push({
+                type: "lines",
+                coordinateSystem: "geo", // 使用 geo 坐标系
+                smooth: true, // 平滑曲线
+                data: [
+                  {
+                    name: flight.code,
+                    coords: [start, end],
+                    info: {
+                      code: flight.code,
+                      time: flight.time,
+                      start: stations[flight.route[0]].name,
+                      end: stations[flight.route[flight.route.length - 1]].name,
+                      information: flight.information,
+                    },
+                  },
+                ],
+                effect: {
+                  show: true,
+                  period: Math.floor(Math.random() * 5) + 4, // 动画周期
+                  // trailLength: 0.2, // 是否有拖尾
+                  symbol: getFlightSymbol(flight.code, start, end),
+                  symbolSize: 48, // 大小
                 },
                 lineStyle: {
                   width: 3,
@@ -115,24 +192,10 @@
 
           // ----------准备车站标记的点数据----------
           let stationsData = [];
-          const morandiColors = [
-            "#B95756", // 柔砖红
-            "#E4745E", // 珊瑚红
-            "#CA774B", // 焦糖橙
-            "#EC8F3F", // 杏橙
-            "#A87153", // 暖棕
-            "#82ABA3", // 莫兰迪青
-            "#66828E", // 灰蓝
-            "#586D80", // 钢蓝
-            "#8E9AAB", // 雾蓝
-            "#97A5C0", // 淡紫蓝
-          ];
 
           Object.keys(stations).forEach((station) => {
             // eg:station = 'tna', stations[station] = { "LatLng": [105.88, 30.22], "name": "潼南"}
 
-            const color =
-              morandiColors[Math.floor(Math.random() * morandiColors.length)];
             if (stationsCount[station] >= 1) {
               stationsData.push({
                 type: "scatter",
@@ -171,51 +234,6 @@
           });
 
           // ----------设置 ECharts 配置----------
-          // 省份颜色配置
-          const provinceColors = {
-            // 华北
-            北京: { normal: "#BECBD3", hover: "#8E9BAE" },
-            天津: { normal: "#DCDDDF", hover: "#B6BBBE" },
-            河北: { normal: "#DDD0C8", hover: "#A39183" },
-            山西: { normal: "#EAE0D7", hover: "#CFC3BC" },
-            内蒙古: { normal: "#C6CCC0", hover: "#8A9585" },
-            // 东北
-            辽宁: { normal: "#CCD2CC", hover: "#737C75" },
-            吉林: { normal: "#D6E1D7", hover: "#A1B0AD" },
-            黑龙江: { normal: "#BFD1C4", hover: "#82ABA3" },
-            // 华东
-            上海: { normal: "#E3E7EA", hover: "#9DA8AF" },
-            江苏: { normal: "#DBD2C9", hover: "#A39087" },
-            浙江: { normal: "#E3D0CC", hover: "#AB8C83" },
-            安徽: { normal: "#F4EBE4", hover: "#D2CABF" },
-            福建: { normal: "#F2DBD5", hover: "#CBA29E" },
-            江西: { normal: "#EBC2C0", hover: "#B87F78" },
-            山东: { normal: "#D7CDD5", hover: "#A392A2" },
-            // 华南
-            河南: { normal: "#E0DFE4", hover: "#8D8FA4" },
-            湖北: { normal: "#CFC3BC", hover: "#A08887" },
-            湖南: { normal: "#E6DEDC", hover: "#C0B0A2" },
-            广东: { normal: "#D6DCDB", hover: "#82898D" },
-            广西: { normal: "#C1CCC7", hover: "#93A3A0" },
-            海南: { normal: "#E6F1ED", hover: "#A8B2AA" },
-            // 西南
-            重庆: { normal: "#D4C3AA", hover: "#A39183" },
-            四川: { normal: "#EDDFC4", hover: "#B5AF5A" },
-            贵州: { normal: "#D1D3C5", hover: "#737C75" },
-            云南: { normal: "#DEE1CB", hover: "#93A3A0" },
-            西藏: { normal: "#EEF1EA", hover: "#ADB5AB" },
-            // 西北
-            陕西: { normal: "#C5BDB2", hover: "#908982" },
-            甘肃: { normal: "#D2CABF", hover: "#A09952" },
-            青海: { normal: "#EEDAC0", hover: "#BFBC9D" },
-            宁夏: { normal: "#D6D9B9", hover: "#C0C182" },
-            新疆: { normal: "#F3F4D5", hover: "#CDDAA5" },
-            // 港澳台
-            香港: { normal: "#E8D8D7", hover: "#B87F78" },
-            澳门: { normal: "#F9ECE4", hover: "#CBA29E" },
-            台湾: { normal: "#E0DFE4", hover: "#8D8FA4" },
-          };
-
           const option = {
             backgroundColor: "transparent", // 透明背景
 
@@ -256,7 +274,7 @@
                 if (params.seriesType === "lines") {
                   const info = params.data.info;
                   return `
-                    车次：${info.code}<br/>
+                    班次：${info.code}<br/>
                     时间：${info.time}<br/>
                     起点：${info.start}<br/>
                     终点：${info.end}<br/>
@@ -268,8 +286,9 @@
             },
 
             series: [
-              ...trainsData, // 车次曲线
+              ...trainsData, // 火车车次曲线
               ...stationsData, // 车站点（保持你已有的设置）
+              ...flightsData, // 飞机航班曲线
             ],
           };
 
