@@ -16,6 +16,7 @@
         height: 100vh;
       }
     </style>
+    <link rel="stylesheet" href="css/control-panel.css" />
   </head>
   <body>
     <div id="china-map"></div>
@@ -26,6 +27,12 @@
     <script src="js/china.js"></script>
     <!-- 引入自定义工具脚本 -->
     <script src="js/utils.js"></script>
+
+    <div id="layer-control">
+      <button id="btn-all">全部路线</button>
+      <button id="btn-train">仅铁路</button>
+      <button id="btn-flight">仅航空</button>
+    </div>
 
     <script>
       let chart = echarts.init(document.getElementById("china-map"));
@@ -339,6 +346,33 @@
 
           // 6. 使用配置项填充图表
           chart.setOption(option);
+          document.getElementById("btn-all").onclick = () => {
+            updateSeries(
+              "all",
+              trainsData,
+              stationsData,
+              flightsData,
+              airportsData
+            );
+          };
+          document.getElementById("btn-train").onclick = () => {
+            updateSeries(
+              "train",
+              trainsData,
+              stationsData,
+              flightsData,
+              airportsData
+            );
+          };
+          document.getElementById("btn-flight").onclick = () => {
+            updateSeries(
+              "flight",
+              trainsData,
+              stationsData,
+              flightsData,
+              airportsData
+            );
+          };
         })
         .catch((error) => {
           console.error("加载数据失败:", error);

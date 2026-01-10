@@ -34,6 +34,39 @@ function getFlightSymbol(code, start, end) {
     return `image://./images/飞机${fan}.png`; // 飞机
 }
 
+// 根据选项刷新 series 函数
+function updateSeries(type, trainsData, stationsData, flightsData, airportsData) {
+    let series = [];
+
+    if (type === "all") {
+        series = [
+            ...trainsData,
+            ...stationsData,
+            ...flightsData,
+            ...airportsData,
+        ];
+    } else if (type === "train") {
+        series = [
+            ...trainsData,
+            ...stationsData,
+        ];
+    } else if (type === "flight") {
+        series = [
+            ...flightsData,
+            ...airportsData,
+        ];
+    }
+
+    chart.setOption(
+        {
+            series: series,
+        },
+        {
+            replaceMerge: ["series"],
+        }
+    );
+}
+
 // 省份颜色配置
 const provinceColors = {
     // 华北
