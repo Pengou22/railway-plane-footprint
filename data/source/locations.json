@@ -1,0 +1,653 @@
+{
+  "schemaVersion": 3,
+  "locations": [
+    {
+      "id": "tna",
+      "type": "station",
+      "name": "潼南",
+      "osmId": "n4970347697"
+    },
+    {
+      "id": "hch",
+      "type": "station",
+      "name": "合川",
+      "osmId": "n7212001156"
+    },
+    {
+      "id": "cqb",
+      "type": "station",
+      "name": "重庆北",
+      "osmId": "n654769359"
+    },
+    {
+      "id": "cqx",
+      "type": "station",
+      "name": "重庆西",
+      "osmId": "n7238885494"
+    },
+    {
+      "id": "gyd",
+      "type": "station",
+      "name": "贵阳东",
+      "osmId": "n3059393382"
+    },
+    {
+      "id": "gyb",
+      "type": "station",
+      "name": "贵阳北",
+      "osmId": "n2874005142"
+    },
+    {
+      "id": "gzn",
+      "type": "station",
+      "name": "广州南",
+      "osmId": "n3677030154"
+    },
+    {
+      "id": "szb",
+      "type": "station",
+      "name": "深圳北",
+      "osmId": "n5369745039"
+    },
+    {
+      "id": "lji",
+      "type": "station",
+      "name": "丽江",
+      "osmId": "n1530613773"
+    },
+    {
+      "id": "kmi",
+      "type": "station",
+      "name": "昆明",
+      "osmId": "n9176075104"
+    },
+    {
+      "id": "xgl",
+      "type": "station",
+      "name": "香格里拉",
+      "osmId": "n9296633913"
+    },
+    {
+      "id": "cdd",
+      "type": "station",
+      "name": "成都东",
+      "osmId": "n7212021583"
+    },
+    {
+      "id": "ghb",
+      "type": "station",
+      "name": "广汉北",
+      "osmId": "n3815021470"
+    },
+    {
+      "id": "xni",
+      "type": "station",
+      "name": "西宁",
+      "osmId": "n307345596"
+    },
+    {
+      "id": "sni",
+      "type": "station",
+      "name": "遂宁",
+      "osmId": "n3358425493"
+    },
+    {
+      "id": "zyi",
+      "type": "station",
+      "name": "遵义",
+      "osmId": "n3695331090"
+    },
+    {
+      "id": "hme",
+      "type": "station",
+      "name": "虎门",
+      "osmId": "n7063297019"
+    },
+    {
+      "id": "ycd",
+      "type": "station",
+      "name": "永川东",
+      "osmId": "n3500459007"
+    },
+    {
+      "id": "rcb",
+      "type": "station",
+      "name": "荣昌北",
+      "osmId": "n3500459043"
+    },
+    {
+      "id": "njb",
+      "type": "station",
+      "name": "内江北",
+      "osmId": "n8869763827"
+    },
+    {
+      "id": "zyb",
+      "type": "station",
+      "name": "资阳北",
+      "osmId": "n3500460600"
+    },
+    {
+      "id": "glx",
+      "type": "station",
+      "name": "桂林西",
+      "osmId": "n7775792087"
+    },
+    {
+      "id": "dli",
+      "type": "station",
+      "name": "大理",
+      "osmId": "n2215381943"
+    },
+    {
+      "id": "gyu",
+      "type": "station",
+      "name": "广元",
+      "osmId": "n1532826989"
+    },
+    {
+      "id": "hdp",
+      "type": "station",
+      "name": "哈达铺",
+      "osmId": "n13058397777"
+    },
+    {
+      "id": "lzh",
+      "type": "station",
+      "name": "兰州",
+      "osmId": "n269826006"
+    },
+    {
+      "id": "csn",
+      "type": "station",
+      "name": "长沙南",
+      "osmId": "n2803078099"
+    },
+    {
+      "id": "wha",
+      "type": "station",
+      "name": "武汉",
+      "osmId": "n579971406"
+    },
+    {
+      "id": "hfn",
+      "type": "station",
+      "name": "合肥南",
+      "osmId": "n7197518162"
+    },
+    {
+      "id": "hfe",
+      "type": "station",
+      "name": "合肥",
+      "osmId": "n6234423783"
+    },
+    {
+      "id": "tch",
+      "type": "station",
+      "name": "桐城",
+      "osmId": "n1642883477"
+    },
+    {
+      "id": "hni",
+      "type": "station",
+      "name": "怀宁",
+      "osmId": "n1642883459"
+    },
+    {
+      "id": "jji",
+      "type": "station",
+      "name": "九江",
+      "osmId": "n2988920235"
+    },
+    {
+      "id": "nch",
+      "type": "station",
+      "name": "南昌",
+      "osmId": "n1575144250"
+    },
+    {
+      "id": "gzh",
+      "type": "station",
+      "name": "赣州",
+      "osmId": "n1641971957"
+    },
+    {
+      "id": "lch",
+      "type": "station",
+      "name": "龙川",
+      "osmId": "n1619080438"
+    },
+    {
+      "id": "hyu",
+      "type": "station",
+      "name": "河源",
+      "osmId": "n1908080931"
+    },
+    {
+      "id": "hyd",
+      "type": "station",
+      "name": "河源东",
+      "osmId": "n9329167795"
+    },
+    {
+      "id": "hzh",
+      "type": "station",
+      "name": "惠州",
+      "osmId": "n5590889820"
+    },
+    {
+      "id": "dgd",
+      "type": "station",
+      "name": "东莞东",
+      "osmId": "n4641554944"
+    },
+    {
+      "id": "szd",
+      "type": "station",
+      "name": "深圳东",
+      "osmId": "n1942735574"
+    },
+    {
+      "id": "xgxjl",
+      "type": "station",
+      "name": "香港西九龙",
+      "osmId": "n7919700008"
+    },
+    {
+      "id": "szs",
+      "type": "station",
+      "name": "深圳坪山",
+      "osmId": "n6708684808"
+    },
+    {
+      "id": "ybi",
+      "type": "station",
+      "name": "宜宾",
+      "osmId": "n9878566698"
+    },
+    {
+      "id": "luzhou",
+      "type": "station",
+      "name": "泸州",
+      "osmId": "n9289413241"
+    },
+    {
+      "id": "qda",
+      "type": "station",
+      "name": "青岛",
+      "osmId": "n9255077341"
+    },
+    {
+      "id": "rch",
+      "type": "station",
+      "name": "荣成",
+      "osmId": "n3315766282"
+    },
+    {
+      "id": "weihai",
+      "type": "station",
+      "name": "威海",
+      "osmId": "n1565198993"
+    },
+    {
+      "id": "bjt",
+      "type": "station",
+      "name": "北京丰台",
+      "osmId": "n124205138"
+    },
+    {
+      "id": "ncx",
+      "type": "station",
+      "name": "南昌西",
+      "osmId": "n2266601966"
+    },
+    {
+      "id": "fuling",
+      "type": "station",
+      "name": "涪陵",
+      "osmId": "n1681825062"
+    },
+    {
+      "id": "qianjiang",
+      "type": "station",
+      "name": "黔江",
+      "osmId": "n1681825133"
+    },
+    {
+      "id": "tongren",
+      "type": "station",
+      "name": "铜仁",
+      "osmId": "n1681825151"
+    },
+    {
+      "id": "huaihua",
+      "type": "station",
+      "name": "怀化",
+      "osmId": "n1579354013"
+    },
+    {
+      "id": "huaihuanan",
+      "type": "station",
+      "name": "怀化南",
+      "osmId": "n2953790848"
+    },
+    {
+      "id": "loudi",
+      "type": "station",
+      "name": "娄底",
+      "osmId": "n1571743515"
+    },
+    {
+      "id": "zhuzhou",
+      "type": "station",
+      "name": "株洲",
+      "osmId": "n5814548885"
+    },
+    {
+      "id": "hengyang",
+      "type": "station",
+      "name": "衡阳",
+      "osmId": "n582293535"
+    },
+    {
+      "id": "guangzhoubei",
+      "type": "station",
+      "name": "广州北",
+      "osmId": "n8308266744"
+    },
+    {
+      "id": "xiushan",
+      "type": "station",
+      "name": "秀山",
+      "osmId": "n1681825182"
+    },
+    {
+      "id": "osm-n8385846445",
+      "type": "station",
+      "name": "南沙北",
+      "osmId": "n8385846445"
+    },
+    {
+      "id": "osm-n7706970417",
+      "type": "station",
+      "name": "佛山西",
+      "osmId": "n7706970417"
+    },
+    {
+      "id": "osm-n3060261931",
+      "type": "station",
+      "name": "贺州",
+      "osmId": "n3060261931"
+    },
+    {
+      "id": "osm-n3676368704",
+      "type": "station",
+      "name": "钟山西",
+      "osmId": "n3676368704"
+    },
+    {
+      "id": "osm-n9527375841",
+      "type": "station",
+      "name": "榕江",
+      "osmId": "n9527375841"
+    },
+    {
+      "id": "osm-n3695373142",
+      "type": "station",
+      "name": "綦江东",
+      "osmId": "n3695373142"
+    },
+    {
+      "id": "osm-n2314081738",
+      "type": "station",
+      "name": "吉安",
+      "osmId": "n2314081738"
+    },
+    {
+      "id": "osm-n8270551258",
+      "type": "station",
+      "name": "惠州北",
+      "osmId": "n8270551258"
+    },
+    {
+      "id": "osm-n8270803977",
+      "type": "station",
+      "name": "河源北",
+      "osmId": "n8270803977"
+    },
+    {
+      "id": "osm-n9053630464",
+      "type": "station",
+      "name": "龙川西",
+      "osmId": "n9053630464"
+    },
+    {
+      "id": "osm-n12741513019",
+      "type": "station",
+      "name": "和平北",
+      "osmId": "n12741513019"
+    },
+    {
+      "id": "osm-n8345915095",
+      "type": "station",
+      "name": "信丰西",
+      "osmId": "n8345915095"
+    },
+    {
+      "id": "osm-n2942047402",
+      "type": "station",
+      "name": "赣州西",
+      "osmId": "n2942047402"
+    },
+    {
+      "id": "osm-n2940767973",
+      "type": "station",
+      "name": "新干东",
+      "osmId": "n2940767973"
+    },
+    {
+      "id": "osm-n1282629210",
+      "type": "station",
+      "name": "文登",
+      "osmId": "n1282629210"
+    },
+    {
+      "id": "osm-n1277317542",
+      "type": "station",
+      "name": "乳山",
+      "osmId": "n1277317542"
+    },
+    {
+      "id": "osm-n6210210278",
+      "type": "station",
+      "name": "潍坊",
+      "osmId": "n6210210278"
+    },
+    {
+      "id": "osm-n6211223929",
+      "type": "station",
+      "name": "大明湖",
+      "osmId": "n6211223929"
+    },
+    {
+      "id": "osm-n8455171495",
+      "type": "station",
+      "name": "禹城",
+      "osmId": "n8455171495"
+    },
+    {
+      "id": "osm-n6198704798",
+      "type": "station",
+      "name": "德州",
+      "osmId": "n6198704798"
+    },
+    {
+      "id": "osm-n8410521685",
+      "type": "station",
+      "name": "吴桥",
+      "osmId": "n8410521685"
+    },
+    {
+      "id": "osm-n8410481231",
+      "type": "station",
+      "name": "东光",
+      "osmId": "n8410481231"
+    },
+    {
+      "id": "osm-n6336645319",
+      "type": "station",
+      "name": "泊头",
+      "osmId": "n6336645319"
+    },
+    {
+      "id": "osm-n12495257433",
+      "type": "station",
+      "name": "沧州",
+      "osmId": "n12495257433"
+    },
+    {
+      "id": "osm-n1668282552",
+      "type": "station",
+      "name": "青县",
+      "osmId": "n1668282552"
+    },
+    {
+      "id": "osm-n8452311706",
+      "type": "station",
+      "name": "静海",
+      "osmId": "n8452311706"
+    },
+    {
+      "id": "osm-n2351141712",
+      "type": "station",
+      "name": "杨柳青",
+      "osmId": "n2351141712"
+    },
+    {
+      "id": "osm-n4126740846",
+      "type": "station",
+      "name": "天津西",
+      "osmId": "n4126740846"
+    },
+    {
+      "id": "osm-n7733885006",
+      "type": "station",
+      "name": "广阳",
+      "osmId": "n7733885006"
+    },
+    {
+      "id": "osm-n8081624907",
+      "type": "station",
+      "name": "青岛北",
+      "osmId": "n8081624907"
+    },
+    {
+      "id": "osm-n3914198648",
+      "type": "station",
+      "name": "即墨北",
+      "osmId": "n3914198648"
+    },
+    {
+      "id": "osm-n11247677912",
+      "type": "station",
+      "name": "海阳",
+      "osmId": "n11247677912"
+    },
+    {
+      "id": "osm-n2843985541",
+      "type": "station",
+      "name": "利川",
+      "osmId": "n2843985541"
+    },
+    {
+      "id": "osm-n3467426477",
+      "type": "station",
+      "name": "恩施",
+      "osmId": "n3467426477"
+    },
+    {
+      "id": "osm-n539460541",
+      "type": "station",
+      "name": "宜昌东",
+      "osmId": "n539460541"
+    },
+    {
+      "id": "osm-n317113112",
+      "type": "station",
+      "name": "长沙",
+      "osmId": "n317113112"
+    },
+    {
+      "id": "osm-n12078063304",
+      "type": "station",
+      "name": "郴州",
+      "osmId": "n12078063304"
+    },
+    {
+      "id": "osm-n7101309828",
+      "type": "station",
+      "name": "东莞",
+      "osmId": "n7101309828"
+    },
+    {
+      "id": "osm-n9546662163",
+      "type": "station",
+      "name": "陇南",
+      "osmId": "n9546662163"
+    },
+    {
+      "id": "osm-n3596013343",
+      "type": "station",
+      "name": "阆中",
+      "osmId": "n3596013343"
+    },
+    {
+      "id": "osm-n3500325328",
+      "type": "station",
+      "name": "南部",
+      "osmId": "n3500325328"
+    },
+    {
+      "id": "osm-n3500325327",
+      "type": "station",
+      "name": "南充北",
+      "osmId": "n3500325327"
+    },
+    {
+      "id": "cqjb",
+      "type": "airport",
+      "name": "重庆江北",
+      "osmId": "a206564952"
+    },
+    {
+      "id": "szba",
+      "type": "airport",
+      "name": "深圳宝安",
+      "osmId": "a959454454"
+    },
+    {
+      "id": "kmcs",
+      "type": "airport",
+      "name": "昆明长水",
+      "osmId": "a962303168"
+    },
+    {
+      "id": "shhq",
+      "type": "airport",
+      "name": "上海虹桥",
+      "osmId": "w428121878"
+    },
+    {
+      "id": "qdjd",
+      "type": "airport",
+      "name": "青岛胶东",
+      "osmId": "w472034670"
+    },
+    {
+      "id": "bjsd",
+      "type": "airport",
+      "name": "北京首都",
+      "osmId": "a585619416"
+    }
+  ]
+}

@@ -3,380 +3,254 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>铁路历史足迹地图</title>
-    <style>
-      body {
-        margin: 0;
-        padding: 0;
-        background: url("images/000046.jpg") no-repeat center center fixed;
-        background-size: cover; /* 拉伸至全屏 */
-      }
-      #china-map {
-        width: 100%;
-        height: 100vh;
-      }
-    </style>
-    <link rel="stylesheet" href="css/control-panel.css" />
+    <meta
+      name="description"
+      content="在中国地图上记录个人铁路与航空历史行程。"
+    />
+    <title>空铁足迹</title>
+    <link rel="icon" href="assets/images/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="assets/css/control-panel.css" />
   </head>
   <body>
-    <div id="china-map"></div>
+    <main id="app-shell">
+      <div
+        id="china-map"
+        role="img"
+        aria-label="中国铁路与航空历史行程地图"
+      ></div>
 
-    <!-- 引入 ECharts -->
-    <script src="js/echarts.js"></script>
-    <!-- 引入中国地图数据 -->
-    <script src="js/china.js"></script>
-    <!-- 引入自定义工具脚本 -->
-    <script src="js/utils.js"></script>
+      <header id="app-title">
+        <p class="eyebrow">RAILWAY · FLIGHT · MEMORY</p>
+        <h1>空铁足迹</h1>
+        <p id="journey-summary">正在整理旅程……</p>
+      </header>
 
-    <div id="layer-control">
-      <button id="btn-all">全部路线</button>
-      <button id="btn-train">仅铁路</button>
-      <button id="btn-flight">仅航空</button>
-    </div>
+      <section id="map-controls" aria-label="地图图层控制">
+        <p class="control-label">地图显示</p>
 
-    <script>
-      let chart = echarts.init(document.getElementById("china-map"));
+        <label class="toggle-row" for="railway-layer-toggle">
+          <input id="railway-layer-toggle" type="checkbox" checked />
+          <span class="toggle-track" aria-hidden="true">
+            <span class="toggle-thumb"></span>
+          </span>
+          <span>全国铁路网</span>
+        </label>
 
-      // ----------加载 stations.json 和 trains.json----------
-      Promise.all([
-        fetch("json/stations.json").then((response) => response.json()),
-        fetch("json/trains.json").then((response) => response.json()),
-        fetch("json/flights.json").then((response) => response.json()),
-        fetch("json/airports.json").then((response) => response.json()),
-      ])
-        .then(([stations, trains, flights, airports]) => {
-          // 计算每个车站、机场的出现次数
-          let stationsCount = {};
-          let airportsCount = {};
+        <button
+          id="journey-filter-toggle"
+          class="filter-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="journey-filter-panel"
+        >
+          <span>行程筛选</span>
+          <span class="filter-arrow" aria-hidden="true">⌄</span>
+        </button>
 
-          trains.forEach((train) => {
-            const route = train.route;
-            // 起点和终点加 1 次
-            stationsCount[route[0]] = (stationsCount[route[0]] || 0) + 1;
-            stationsCount[route[route.length - 1]] =
-              (stationsCount[route[route.length - 1]] || 0) + 1;
-          });
+        <div id="journey-filter-panel" hidden>
+          <div class="filter-field">
+            <span>交通方式</span>
+            <span id="mode-switch" class="segmented-control">
+              <button
+                class="active"
+                type="button"
+                data-mode="all"
+                aria-pressed="true"
+              >
+                全部
+              </button>
+              <button type="button" data-mode="train" aria-pressed="false">
+                铁路
+              </button>
+              <button type="button" data-mode="flight" aria-pressed="false">
+                航空
+              </button>
+            </span>
+          </div>
+          <div class="filter-date-grid">
+            <label class="filter-field">
+              <span>年份</span>
+              <select id="journey-year-filter">
+                <option value="all">全部年份</option>
+              </select>
+            </label>
+            <label class="filter-field">
+              <span>月份</span>
+              <select id="journey-month-filter">
+                <option value="all">全部月份</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </section>
 
-          flights.forEach((flight) => {
-            const route = flight.route;
-            // 起点和终点加 1 次
-            airportsCount[route[0]] = (airportsCount[route[0]] || 0) + 1;
-            airportsCount[route[route.length - 1]] =
-              (airportsCount[route[route.length - 1]] || 0) + 1;
-          });
+      <nav id="page-actions" aria-label="行程操作">
+        <button
+          id="history-journey-button"
+          type="button"
+          aria-expanded="false"
+          aria-controls="journey-history-panel"
+        >
+          历史行程
+        </button>
+        <button id="add-journey-button" type="button">录入行程</button>
+      </nav>
 
-          // ----------准备车次路线的线数据----------
-          let trainsData = [];
-          let trainsCount = new Map();
+      <div id="loading-status" role="status">
+        <span class="loading-dot"></span>
+        正在铺开地图
+      </div>
 
-          // 火车的线路（通过车站坐标来连接）
-          trains.forEach((train) => {
-            let trainData = [];
+      <div id="error-banner" role="alert" hidden>
+        <strong>地图没有成功加载</strong>
+        <span id="error-message"></span>
+      </div>
 
-            train.route.forEach((station) => {
-              // eg: train.route = ["tna", "hch", "cqx"]
-              if (stations[station]) {
-                trainData.push(stations[station].LatLng); // 获取车站的坐标
-              }
-            });
+      <footer id="attribution">
+        铁路数据
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noreferrer"
+        >© OpenStreetMap contributors · ODbL</a>
+      </footer>
+    </main>
 
-            // 确保线路数据大于 1，才绘制
-            if (trainData.length > 1) {
-              const start = trainData[0];
-              const end = trainData[trainData.length - 1];
-              // 用字符串作为 key，例如: "35.3,118.9 -> 31.2,121.5"
-              const key = `${start.toString()}->${end.toString()}`;
-              // 更新计数
-              const count = trainsCount.get(key) || 0;
-              trainsCount.set(key, count + 1);
-              // curveness 为曲线弯曲度，从 0.3 开始，每重复一次加一个固定的增量
-              const curveness = 0.3 + count * 0.05;
+    <dialog id="journey-dialog" aria-labelledby="journey-dialog-title">
+      <form id="journey-form">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">NEW JOURNEY</p>
+            <h2 id="journey-dialog-title">录入新行程</h2>
+          </div>
+          <button
+            class="dialog-close"
+            type="button"
+            data-close-dialog
+            aria-label="关闭"
+          >
+            ×
+          </button>
+        </div>
 
-              // 绘制每条线路
-              trainsData.push({
-                type: "lines",
-                coordinateSystem: "geo", // 使用 geo 坐标系
-                smooth: true, // 平滑曲线
-                data: [
-                  {
-                    name: train.code,
-                    coords: [start, end],
-                    info: {
-                      code: train.code,
-                      time: train.time,
-                      start: stations[train.route[0]].name,
-                      end: stations[train.route[train.route.length - 1]].name,
-                      information: train.information,
-                    },
-                  },
-                ],
-                effect: {
-                  show: true,
-                  period: Math.floor(Math.random() * 5) + 4, // 动画周期
-                  // trailLength: 0.2, // 是否有拖尾
-                  symbol: getTrainSymbol(train.code, start, end),
-                  symbolSize: 48, // 大小
-                },
-                lineStyle: {
-                  width: 3,
-                  opacity: 0.9,
-                  curveness: curveness,
-                  color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-                    { offset: 0, color: "#00f5ff" },
-                    { offset: 1, color: "#0077ff" },
-                  ]),
-                },
-                tooltip: {
-                  show: true,
-                },
-              });
-            }
-          });
+        <div class="form-grid">
+          <label>
+            <span>方式</span>
+            <select id="journey-mode" name="mode">
+              <option value="train">铁路</option>
+              <option value="flight">航空</option>
+            </select>
+          </label>
+          <label>
+            <span>日期</span>
+            <input name="date" type="date" required />
+          </label>
+          <label class="form-wide">
+            <span>车次 / 航班号</span>
+            <input
+              name="code"
+              type="text"
+              autocomplete="off"
+              placeholder="例如 G475"
+              required
+            />
+          </label>
+          <label>
+            <span>起点</span>
+            <input
+              id="journey-start"
+              name="start"
+              type="text"
+              list="journey-location-options"
+              autocomplete="off"
+              placeholder="输入中文站名"
+              required
+            />
+          </label>
+          <label>
+            <span>终点</span>
+            <input
+              id="journey-end"
+              name="end"
+              type="text"
+              list="journey-location-options"
+              autocomplete="off"
+              placeholder="输入中文站名"
+              required
+            />
+          </label>
+          <label class="form-wide">
+            <span>途经站</span>
+            <textarea
+              id="journey-via"
+              name="via"
+              rows="4"
+              placeholder="按顺序填写，一行一个；没有可留空"
+            ></textarea>
+          </label>
+          <label class="form-wide">
+            <span>备注（可选）</span>
+            <input name="note" type="text" autocomplete="off" />
+          </label>
+        </div>
+        <datalist id="journey-location-options"></datalist>
 
-          // 飞机的线路（通过车站坐标来连接）
-          let flightsData = [];
-          let flightsCount = new Map();
+        <div class="form-explainer">
+          <strong>静态网页不会直接改项目文件。</strong>
+          提交后会下载一个更新包。运行
+          <code>D:\Anaconda\python.exe pipeline\tools\import_journey_bundle.py 更新包.json</code>
+          导入，再执行铁路构建脚本，即可生成真实轨迹。
+        </div>
+        <p id="journey-form-status" role="status"></p>
+        <div class="dialog-actions">
+          <button type="button" class="secondary-action" data-close-dialog>
+            取消
+          </button>
+          <button type="submit" class="primary-action">
+            生成行程更新包
+          </button>
+        </div>
+      </form>
+    </dialog>
 
-          flights.forEach((flight) => {
-            let flightData = [];
-            flight.route.forEach((airport) => {
-              // eg: flight.route = ["cqjb", "szba"]
-              if (airports[airport]) {
-                flightData.push(airports[airport].LatLng); // 获取机场的坐标
-              }
-            });
+    <aside
+      id="journey-history-panel"
+      aria-labelledby="journey-history-panel-title"
+      aria-hidden="true"
+      inert
+    >
+      <div class="history-panel-heading">
+        <div>
+          <p class="eyebrow">JOURNEY ARCHIVE</p>
+          <h2 id="journey-history-panel-title">历史行程</h2>
+        </div>
+        <button
+          class="history-panel-close"
+          type="button"
+          data-close-history
+        >
+          关闭
+        </button>
+      </div>
 
-            // 确保线路数据大于 1，才绘制
-            if (flightData.length > 1) {
-              const start = flightData[0];
-              const end = flightData[flightData.length - 1];
-              // 用字符串作为 key，例如: "35.3,118.9 -> 31.2,121.5"
-              const key = `${start.toString()}->${end.toString()}`;
-              // 更新计数
-              const count = flightsCount.get(key) || 0;
-              flightsCount.set(key, count + 1);
-              // curveness 为曲线弯曲度，从 0.3 开始，每重复一次加一个固定的增量
-              const curveness = 0.3 + count * 0.05;
+      <p id="history-filter-summary" class="history-tip"></p>
+      <div id="journey-history-list" class="journey-history-list"></div>
 
-              // 绘制每条线路
-              flightsData.push({
-                type: "lines",
-                coordinateSystem: "geo", // 使用 geo 坐标系
-                smooth: true, // 平滑曲线
-                data: [
-                  {
-                    name: flight.code,
-                    coords: [start, end],
-                    info: {
-                      code: flight.code,
-                      time: flight.time,
-                      start: airports[flight.route[0]].name,
-                      end: airports[flight.route[flight.route.length - 1]].name,
-                      information: flight.information,
-                    },
-                  },
-                ],
-                effect: {
-                  show: true,
-                  period: Math.floor(Math.random() * 5) + 4, // 动画周期
-                  // trailLength: 0.2, // 是否有拖尾
-                  symbol: getFlightSymbol(flight.code, start, end),
-                  symbolSize: 48, // 大小
-                },
-                lineStyle: {
-                  width: 3,
-                  opacity: 0.9,
-                  curveness: curveness,
-                  color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-                    { offset: 0, color: "#00f5ff" },
-                    { offset: 1, color: "#0077ff" },
-                  ]),
-                },
-                tooltip: {
-                  show: true,
-                },
-              });
-            }
-          });
+      <div class="history-actions">
+        <button
+          id="clear-journey-highlight"
+          class="secondary-action"
+          type="button"
+          disabled
+        >
+          取消线路高亮
+        </button>
+      </div>
+    </aside>
 
-          // ----------准备车站标记的点数据----------
-          let stationsData = [];
-
-          Object.keys(stations).forEach((station) => {
-            // eg:station = 'tna', stations[station] = { "LatLng": [105.88, 30.22], "name": "潼南"}
-
-            if (stationsCount[station] >= 1) {
-              stationsData.push({
-                type: "scatter",
-                coordinateSystem: "geo", // 使用 geo 坐标系
-                data: [
-                  {
-                    name: stations[station].name,
-                    value: stations[station].LatLng,
-                  },
-                ],
-                symbol: "image://./images/火车站.png",
-                symbolSize: Math.log(stationsCount[station] + 1) * 10, // 根据出现次数调整大小
-                label: {
-                  formatter: "{b}", // 显示车站名称
-                  position: "bottom",
-                  show: true,
-                  fontSize: "10",
-                },
-                itemStyle: {
-                  color: "#f13434", // 设置颜色为红色
-                  borderColor: "#f13434", // 边框颜色
-                  borderWidth: 2, // 边框宽度
-                  shadowBlur: 10, // 阴影模糊程度
-                  shadowColor: "#999", // 阴影颜色
-                },
-                zlevel: 1,
-                emphasis: {
-                  scale: 1.5, // 鼠标悬停时放大
-                  itemStyle: {
-                    shadowBlur: 20, // 阴影范围
-                    shadowColor: "rgba(0,0,0,0.4)",
-                  },
-                },
-              });
-            }
-          });
-
-          // ----------准备机场标记的点数据----------
-          let airportsData = [];
-
-          Object.keys(airports).forEach((airport) => {
-            // eg:airport = 'cqjb', airports[airport] = { "LatLng": [106.66, 29.72], "name": "重庆江北"}
-            if (airportsCount[airport] >= 1) {
-              airportsData.push({
-                type: "scatter",
-                coordinateSystem: "geo", // 使用 geo 坐标系
-                data: [
-                  {
-                    name: airports[airport].name,
-                    value: airports[airport].LatLng,
-                  },
-                ],
-                symbol: "image://./images/飞机场.png",
-                symbolSize: Math.log(airportsCount[airport] + 1) * 10, // 根据出现次数调整大小
-                label: {
-                  formatter: "{b}", // 显示车站名称
-                  position: "bottom",
-                  show: true,
-                  fontSize: "10",
-                },
-                itemStyle: {
-                  color: "#f13434", // 设置颜色为红色
-                  borderColor: "#f13434", // 边框颜色
-                  borderWidth: 2, // 边框宽度
-                  shadowBlur: 10, // 阴影模糊程度
-                  shadowColor: "#999", // 阴影颜色
-                },
-                zlevel: 1,
-                emphasis: {
-                  scale: 1.5, // 鼠标悬停时放大
-                  itemStyle: {
-                    shadowBlur: 20, // 阴影范围
-                    shadowColor: "rgba(0,0,0,0.4)",
-                  },
-                },
-              });
-            }
-          });
-
-          // ----------设置 ECharts 配置----------
-          const option = {
-            backgroundColor: "transparent", // 透明背景
-
-            geo: {
-              map: "china",
-              roam: true,
-              zoom: 1.2,
-              scaleLimit: {
-                min: 1, // 最小缩放倍数（不能再缩小）
-                max: 100, // 最大缩放倍数（不能无限放大）
-              },
-
-              regions: Object.keys(provinceColors).map((name) => ({
-                name,
-                itemStyle: {
-                  areaColor: provinceColors[name].normal,
-                  opacity: 0.8,
-                },
-                emphasis: {
-                  itemStyle: {
-                    areaColor: provinceColors[name].normal,
-                    opacity: 1,
-                    shadowBlur: 15, // 阴影范围
-                    shadowColor: "rgba(0,0,0,0.6)", // 黑色阴影
-                    borderColor: "rgba(0,0,0,0.6)", // 黑色描边
-                    borderWidth: 1.5,
-                  },
-                },
-              })),
-              tooltip: {
-                show: false,
-              },
-            },
-            tooltip: {
-              trigger: "item",
-              formatter: function (params) {
-                // 只对线路生效
-                if (params.seriesType === "lines") {
-                  const info = params.data.info;
-                  return `
-                    班次：${info.code}<br/>
-                    时间：${info.time}<br/>
-                    起点：${info.start}<br/>
-                    终点：${info.end}<br/>
-                    ${info.information ? `记录：${info.information}` : ""}
-                  `;
-                }
-                return params.name;
-              },
-            },
-
-            series: [
-              ...trainsData, // 火车车次曲线
-              ...stationsData, // 车站点（保持你已有的设置）
-              ...flightsData, // 飞机航班曲线
-              ...airportsData, // 机场点（保持你已有的设置）
-            ],
-          };
-
-          // 6. 使用配置项填充图表
-          chart.setOption(option);
-          document.getElementById("btn-all").onclick = () => {
-            updateSeries(
-              "all",
-              trainsData,
-              stationsData,
-              flightsData,
-              airportsData
-            );
-          };
-          document.getElementById("btn-train").onclick = () => {
-            updateSeries(
-              "train",
-              trainsData,
-              stationsData,
-              flightsData,
-              airportsData
-            );
-          };
-          document.getElementById("btn-flight").onclick = () => {
-            updateSeries(
-              "flight",
-              trainsData,
-              stationsData,
-              flightsData,
-              airportsData
-            );
-          };
-        })
-        .catch((error) => {
-          console.error("加载数据失败:", error);
-        });
-    </script>
+    <noscript>请启用 JavaScript 以查看行程地图。</noscript>
+    <script src="assets/vendor/echarts.js"></script>
+    <script src="assets/js/utils.js"></script>
+    <script src="assets/js/app.js"></script>
   </body>
 </html>

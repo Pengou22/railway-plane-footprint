@@ -1,6 +1,11 @@
-/chinaHigh.*
-gh-pages-deploy
-gh-pages-deploy.pub
-/jvectormap
-/useless
-/images/version*
+# Large OpenStreetMap sources, reproducible caches, and retained experiments
+/data/cache/
+/data/raw/osm/*.osm.pbf
+/archive/railway-data-experiments/
+
+# Upstream reference project; it is not part of this website
+/references/china-highway-map/
+
+__pycache__/
+*.pyc
+desktop.ini
