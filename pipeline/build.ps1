@@ -1,12 +1,11 @@
 param(
     [string]$InputPbf = "$PSScriptRoot\..\data\raw\osm\china-260325.osm.pbf",
-    [string]$OutputJson = "$PSScriptRoot\..\data\generated\railways.json",
-    [string]$LocationsJson = "$PSScriptRoot\..\data\source\locations.json",
-    [string]$JourneysJson = "$PSScriptRoot\..\data\source\journeys.json",
-    [string]$PlacesJson = "$PSScriptRoot\..\data\generated\places.json",
-    [string]$PassengerStationsJson = "$PSScriptRoot\..\data\generated\passenger-stations.json",
+    [string]$OutputJson = "$PSScriptRoot\..\data\generated\railways.geojson",
+    [string]$RailwayJourneysJson = "$PSScriptRoot\..\data\source\journeys-railway.json",
+    [string]$StationsJson = "$PSScriptRoot\..\data\generated\stations.json",
+    [string]$AirportsJson = "$PSScriptRoot\..\data\generated\airports.json",
     [string]$PassengerStationNames = "$PSScriptRoot\..\data\source\station_name.js",
-    [string]$RoutesJson = "$PSScriptRoot\..\data\generated\journey-routes.json",
+    [string]$RoutesJson = "$PSScriptRoot\..\data\generated\routes.json",
     [string]$ProvinceBoundarySource = "$PSScriptRoot\..\data\raw\boundaries\china-provinces-datav.json",
     [string]$ProvinceBoundariesJson = "$PSScriptRoot\..\data\generated\admin-boundaries-province.json",
     [double]$Tolerance = 0.005,
@@ -20,12 +19,11 @@ $railPbf = Join-Path $buildDirectory "railways.osm.pbf"
 $railSequence = Join-Path $buildDirectory "railways.geojsonseq"
 $placesPbf = Join-Path $buildDirectory "places.osm.pbf"
 $placesSequence = Join-Path $buildDirectory "places.geojsonseq"
-$placeBuilder = Join-Path $PSScriptRoot "builders\build_places.py"
 $stationBuilder = Join-Path $PSScriptRoot "builders\build_passenger_stations.py"
+$airportBuilder = Join-Path $PSScriptRoot "builders\build_airports.py"
 $railwayBuilder = Join-Path $PSScriptRoot "builders\build_railway_layer.py"
 $routeBuilder = Join-Path $PSScriptRoot "builders\build_journey_routes.py"
 $boundaryBuilder = Join-Path $PSScriptRoot "builders\build_admin_boundaries.py"
-$locationSync = Join-Path $PSScriptRoot "tools\sync_journey_locations.py"
 $condaBase = (conda info --base).Trim()
 $basePython = Join-Path $condaBase "python.exe"
 if (-not (Test-Path -LiteralPath $basePython)) {
@@ -64,41 +62,29 @@ if ($LASTEXITCODE -ne 0) {
     throw "Osmium place export failed."
 }
 
-Write-Host "Adding train stops missing from project locations"
-& $basePython $locationSync `
-    --journeys $JourneysJson `
-    --locations $LocationsJson `
-    --passenger-stations $PassengerStationsJson `
-    --osm-catalog $placesSequence `
-    --station-names $PassengerStationNames
-if ($LASTEXITCODE -ne 0) {
-    throw "Journey station synchronization failed."
-}
-
-Write-Host "Resolving project locations from OSM"
-& $basePython $placeBuilder `
-    --catalog $placesSequence `
-    --locations $LocationsJson `
-    --output $PlacesJson `
-    --write-bindings
-if ($LASTEXITCODE -ne 0) {
-    throw "OSM place resolution failed."
-}
-
 Write-Host "Building nationwide passenger station catalog"
 & $basePython $stationBuilder `
     --stations $placesSequence `
     --railways $railSequence `
     --china-boundary $ProvinceBoundarySource `
-    --locations $LocationsJson `
     --passenger-whitelist $PassengerStationNames `
-    --output $PassengerStationsJson `
+    --output $StationsJson `
     --snapshot $Snapshot
 if ($LASTEXITCODE -ne 0) {
     throw "Passenger station catalog generation failed."
 }
 
-Write-Host "Building compact ECharts railway layer"
+Write-Host "Building nationwide scheduled-passenger airport catalog"
+& $basePython $airportBuilder `
+    --aerodromes $placesSequence `
+    --china-boundary $ProvinceBoundarySource `
+    --output $AirportsJson `
+    --snapshot $Snapshot
+if ($LASTEXITCODE -ne 0) {
+    throw "Passenger airport catalog generation failed."
+}
+
+Write-Host "Building compact MapLibre railway layer"
 & $basePython $railwayBuilder `
     --input $railSequence `
     --output $OutputJson `
@@ -121,16 +107,16 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "Routing train journeys over the railway graph"
 & $basePython $routeBuilder `
     --railways $railSequence `
-    --places $PlacesJson `
-    --journeys $JourneysJson `
+    --stations $StationsJson `
+    --railway-journeys $RailwayJourneysJson `
     --output $RoutesJson
 if ($LASTEXITCODE -ne 0) {
     throw "Train journey routing failed."
 }
 
 Write-Host "Created:"
-Write-Host "  $PlacesJson"
-Write-Host "  $PassengerStationsJson"
+Write-Host "  $StationsJson"
+Write-Host "  $AirportsJson"
 Write-Host "  $OutputJson"
 Write-Host "  $RoutesJson"
 Write-Host "  $ProvinceBoundariesJson"

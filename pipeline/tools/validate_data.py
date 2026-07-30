@@ -14,7 +14,7 @@ from pathlib import Path
 
 ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 OSM_ID_PATTERN = re.compile(r"^[nwra]\d+$")
-LOCATION_TYPES = {"station", "airport"}
+IATA_PATTERN = re.compile(r"^[A-Z]{3}$")
 JOURNEY_MODES = {"train", "flight"}
 
 
@@ -28,118 +28,43 @@ def require(condition: bool, message: str, errors: list[str]) -> None:
         errors.append(message)
 
 
-def validate_locations(path: Path, errors: list[str]) -> dict[str, dict]:
-    document = read_json(path)
-    require(document.get("schemaVersion") == 3, f"{path}: schemaVersion must be 3", errors)
-    items = document.get("locations")
-    require(isinstance(items, list), f"{path}: locations must be an array", errors)
-    if not isinstance(items, list):
-        return {}
-
-    by_id: dict[str, dict] = {}
-    names: Counter[str] = Counter()
-    for index, item in enumerate(items):
-        label = f"{path}: locations[{index}]"
-        require(isinstance(item, dict), f"{label} must be an object", errors)
-        if not isinstance(item, dict):
-            continue
-
-        location_id = item.get("id")
-        require(
-            isinstance(location_id, str) and bool(ID_PATTERN.fullmatch(location_id)),
-            f"{label}.id must be a lowercase stable identifier",
-            errors,
-        )
-        if isinstance(location_id, str):
-            require(location_id not in by_id, f"{label}: duplicate id {location_id}", errors)
-            by_id[location_id] = item
-
-        location_type = item.get("type")
-        require(location_type in LOCATION_TYPES, f"{label}.type is invalid", errors)
-
-        name = item.get("name")
-        require(isinstance(name, str) and bool(name.strip()), f"{label}.name is required", errors)
-        if isinstance(name, str):
-            names[name] += 1
-
-        osm_id = item.get("osmId")
-        require(
-            isinstance(osm_id, str) and bool(OSM_ID_PATTERN.fullmatch(osm_id)),
-            f"{label}.osmId must be an exported OSM feature id",
-            errors,
-        )
-
-    for name, count in names.items():
-        require(
-            count == 1,
-            f"{path}: duplicate location name {name!r}",
-            errors,
-        )
-    return by_id
-
-
-def validate_places(
-    path: Path,
-    locations: dict[str, dict],
-    errors: list[str],
-) -> dict[str, dict]:
-    document = read_json(path)
-    require(document.get("schemaVersion") == 1, f"{path}: schemaVersion must be 1", errors)
-    items = document.get("places")
-    require(isinstance(items, list), f"{path}: places must be an array", errors)
-    if not isinstance(items, list):
-        return {}
-
-    by_id = {}
-    for index, item in enumerate(items):
-        label = f"{path}: places[{index}]"
-        require(isinstance(item, dict), f"{label} must be an object", errors)
-        if not isinstance(item, dict):
-            continue
-        place_id = item.get("id")
-        require(place_id in locations, f"{label}: unknown source id {place_id!r}", errors)
-        require(place_id not in by_id, f"{label}: duplicate id {place_id!r}", errors)
-        by_id[place_id] = item
-
-        if place_id in locations:
-            source = locations[place_id]
-            for field in ("type", "name", "osmId"):
-                require(
-                    item.get(field) == source.get(field),
-                    f"{label}.{field} differs from locations.json",
-                    errors,
-                )
-
-        coordinates = item.get("coordinates")
-        valid_coordinates = (
-            isinstance(coordinates, list)
-            and len(coordinates) == 2
-            and all(
-                isinstance(value, (int, float)) and math.isfinite(value)
-                for value in coordinates
-            )
-        )
-        require(
-            valid_coordinates,
-            f"{label}.coordinates must be [longitude, latitude]",
-            errors,
-        )
-        if valid_coordinates:
-            longitude, latitude = coordinates
-            require(70 <= longitude <= 140, f"{label}: longitude is outside China", errors)
-            require(0 <= latitude <= 60, f"{label}: latitude is outside China", errors)
-
-    require(
-        set(by_id) == set(locations),
-        f"{path}: generated places do not exactly match locations.json",
-        errors,
+def normalized_place_name(name: str, place_type: str) -> str:
+    value = name.casefold()
+    value = re.sub(r"[\s·•（）()\-—_/]+", "", value)
+    suffixes = (
+        ("火车站", "铁路车站", "高铁站", "railwaystation", "station", "站")
+        if place_type == "station"
+        else ("国际机场", "机场", "航空港", "internationalairport", "airport")
     )
-    return by_id
+    for suffix in suffixes:
+        if value.endswith(suffix) and len(value) > len(suffix):
+            return value[: -len(suffix)]
+    return value
+
+
+def catalog_matches(name: str, items: list[dict], place_type: str) -> list[dict]:
+    normalized = normalized_place_name(name, place_type)
+    matches = [
+        item
+        for item in items
+        if any(
+            normalized_place_name(candidate_name, place_type) == normalized
+            for candidate_name in [item["name"], *(item.get("aliases") or [])]
+        )
+    ]
+    primary_matches = [
+        item
+        for item in matches
+        if normalized_place_name(item["name"], place_type) == normalized
+    ]
+    return primary_matches or matches
 
 
 def validate_journeys(
     path: Path,
-    locations: dict[str, dict],
+    expected_mode: str,
+    stations: list[dict],
+    airports: list[dict],
     errors: list[str],
 ) -> tuple[Counter[str], dict[str, dict]]:
     document = read_json(path)
@@ -171,7 +96,11 @@ def validate_journeys(
             by_id[journey_id] = item
 
         mode = item.get("mode")
-        require(mode in JOURNEY_MODES, f"{label}.mode is invalid", errors)
+        require(
+            mode == expected_mode,
+            f"{label}.mode must be {expected_mode!r}",
+            errors,
+        )
         if mode in JOURNEY_MODES:
             counts[mode] += 1
 
@@ -191,18 +120,23 @@ def validate_journeys(
             errors,
         )
         if isinstance(stops, list):
-            expected_type = "station" if mode == "train" else "airport"
+            expected_type = "station" if expected_mode == "train" else "airport"
+            catalog = stations if expected_mode == "train" else airports
             for stop_name in stops:
+                matches = (
+                    catalog_matches(stop_name, catalog, expected_type)
+                    if isinstance(stop_name, str)
+                    else []
+                )
                 require(
-                    stop_name in locations,
+                    bool(matches),
                     f"{label}: unknown stop name {stop_name!r}",
                     errors,
                 )
-                if stop_name in locations:
-                    require(
-                        locations[stop_name].get("type") == expected_type,
-                        f"{label}: {stop_name!r} is not a {expected_type}",
-                        errors,
+                if len(matches) > 1:
+                    errors.append(
+                        f"{label}: ambiguous stop name {stop_name!r}; "
+                        "use an unambiguous formal catalog name"
                     )
 
             signature = (mode, code, date_text, tuple(stops))
@@ -307,41 +241,76 @@ def validate_railways(path: Path, errors: list[str]) -> tuple[int, int]:
         return 0, 0
 
     document = read_json(path)
-    require(document.get("schemaVersion") == 1, f"{path}: schemaVersion must be 1", errors)
-    lines = document.get("lines")
-    require(isinstance(lines, list), f"{path}: lines must be an array", errors)
-    if not isinstance(lines, list):
+    require(document.get("type") == "FeatureCollection", f"{path}: must be GeoJSON", errors)
+    require(document.get("schemaVersion") == 2, f"{path}: schemaVersion must be 2", errors)
+    features = document.get("features")
+    require(isinstance(features, list), f"{path}: features must be an array", errors)
+    if not isinstance(features, list):
         return 0, 0
 
+    line_count = 0
     coordinate_count = 0
-    for index, item in enumerate(lines):
-        label = f"{path}: lines[{index}]"
-        require(isinstance(item, dict), f"{label} must be an object", errors)
-        if not isinstance(item, dict):
+    categories = set()
+    for index, feature in enumerate(features):
+        label = f"{path}: features[{index}]"
+        require(isinstance(feature, dict), f"{label} must be an object", errors)
+        if not isinstance(feature, dict):
             continue
+        properties = feature.get("properties") or {}
+        geometry = feature.get("geometry") or {}
+        category = properties.get("category")
         require(
-            item.get("category") in {"conventional", "highspeed"},
+            category in {"conventional", "highspeed"},
             f"{label}.category is invalid",
             errors,
         )
-        coordinates = item.get("coords")
-        valid_line = (
-            isinstance(coordinates, list)
-            and len(coordinates) >= 2
+        categories.add(category)
+        require(
+            geometry.get("type") == "MultiLineString",
+            f"{label}.geometry must be MultiLineString",
+            errors,
+        )
+        lines = geometry.get("coordinates")
+        valid_lines = (
+            isinstance(lines, list)
+            and bool(lines)
             and all(
-                isinstance(point, list)
-                and len(point) == 2
-                and all(isinstance(value, (int, float)) for value in point)
-                for point in coordinates
+                isinstance(line, list)
+                and len(line) >= 2
+                and all(
+                    isinstance(point, list)
+                    and len(point) == 2
+                    and all(isinstance(value, (int, float)) for value in point)
+                    for point in line
+                )
+                for line in lines
             )
         )
-        require(valid_line, f"{label}.coords is not a valid line", errors)
-        if valid_line:
-            coordinate_count += len(coordinates)
-    return len(lines), coordinate_count
+        require(valid_lines, f"{label}.geometry is invalid", errors)
+        if valid_lines:
+            line_count += len(lines)
+            coordinate_count += sum(len(line) for line in lines)
+
+    source = document.get("source") or {}
+    require(
+        source.get("lineCount") == line_count,
+        f"{path}: source.lineCount does not match geometry",
+        errors,
+    )
+    require(
+        source.get("coordinateCount") == coordinate_count,
+        f"{path}: source.coordinateCount does not match geometry",
+        errors,
+    )
+    require(
+        categories == {"conventional", "highspeed"},
+        f"{path}: both railway categories are required",
+        errors,
+    )
+    return line_count, coordinate_count
 
 
-def validate_passenger_stations(path: Path, errors: list[str]) -> tuple[int, Counter]:
+def validate_stations(path: Path, errors: list[str]) -> tuple[list[dict], Counter]:
     document = read_json(path)
     require(document.get("schemaVersion") == 1, f"{path}: schemaVersion must be 1", errors)
     source = document.get("source")
@@ -354,7 +323,7 @@ def validate_passenger_stations(path: Path, errors: list[str]) -> tuple[int, Cou
     stations = document.get("stations")
     require(isinstance(stations, list), f"{path}: stations must be an array", errors)
     if not isinstance(stations, list):
-        return 0, Counter()
+        return [], Counter()
 
     osm_ids = set()
     names = set()
@@ -446,7 +415,99 @@ def validate_passenger_stations(path: Path, errors: list[str]) -> tuple[int, Cou
                 f"{path}: whitelist domesticNames is inconsistent",
                 errors,
             )
-    return len(stations), levels
+    return stations, levels
+
+
+def validate_airports(path: Path, errors: list[str]) -> list[dict]:
+    document = read_json(path)
+    require(document.get("schemaVersion") == 1, f"{path}: schemaVersion must be 1", errors)
+    source = document.get("source")
+    require(isinstance(source, dict), f"{path}: source is required", errors)
+    if isinstance(source, dict):
+        require(
+            "general-aviation" in str(source.get("selection") or ""),
+            f"{path}: source.selection must document general-aviation exclusion",
+            errors,
+        )
+    airports = document.get("airports")
+    require(isinstance(airports, list), f"{path}: airports must be an array", errors)
+    if not isinstance(airports, list):
+        return []
+
+    iata_codes = set()
+    for index, airport in enumerate(airports):
+        label = f"{path}: airports[{index}]"
+        require(isinstance(airport, dict), f"{label} must be an object", errors)
+        if not isinstance(airport, dict):
+            continue
+        name = airport.get("name")
+        require(
+            isinstance(name, str) and bool(name.strip()),
+            f"{label}.name is required",
+            errors,
+        )
+        iata = airport.get("iata")
+        require(
+            isinstance(iata, str) and bool(IATA_PATTERN.fullmatch(iata)),
+            f"{label}.iata is invalid",
+            errors,
+        )
+        require(iata not in iata_codes, f"{label}: duplicate IATA code {iata!r}", errors)
+        iata_codes.add(iata)
+
+        osm_id = airport.get("osmId")
+        osm_ids = airport.get("osmIds")
+        require(
+            isinstance(osm_id, str) and bool(OSM_ID_PATTERN.fullmatch(osm_id)),
+            f"{label}.osmId is invalid",
+            errors,
+        )
+        require(
+            isinstance(osm_ids, list)
+            and osm_id in osm_ids
+            and all(
+                isinstance(candidate, str)
+                and bool(OSM_ID_PATTERN.fullmatch(candidate))
+                for candidate in osm_ids
+            ),
+            f"{label}.osmIds is invalid",
+            errors,
+        )
+
+        coordinates = airport.get("coordinates")
+        valid_coordinates = (
+            isinstance(coordinates, list)
+            and len(coordinates) == 2
+            and all(
+                isinstance(value, (int, float)) and math.isfinite(value)
+                for value in coordinates
+            )
+        )
+        require(valid_coordinates, f"{label}.coordinates is invalid", errors)
+        if valid_coordinates:
+            longitude, latitude = coordinates
+            require(70 <= longitude <= 140, f"{label}: longitude is outside China", errors)
+            require(0 <= latitude <= 60, f"{label}: latitude is outside China", errors)
+
+        searchable_text = " ".join(
+            [
+                str(name or ""),
+                str(airport.get("operator") or ""),
+                *(airport.get("aliases") or []),
+            ]
+        )
+        require(
+            not re.search(r"通用|通航|general[\s_-]*aviation", searchable_text, re.I),
+            f"{label}: general-aviation airport was not excluded",
+            errors,
+        )
+
+    require(
+        len(airports) >= 250,
+        f"{path}: passenger airport catalog appears incomplete",
+        errors,
+    )
+    return airports
 
 
 def validate_boundaries(
@@ -567,29 +628,43 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     errors: list[str] = []
-    locations = validate_locations(args.source_dir / "locations.json", errors)
-    places = validate_places(args.generated_dir / "places.json", locations, errors)
-    locations_by_name = {
-        location["name"]: location
-        for location in locations.values()
-        if isinstance(location.get("name"), str)
-    }
-    journey_counts, journeys = validate_journeys(
-        args.source_dir / "journeys.json",
-        locations_by_name,
+    stations, station_levels = validate_stations(
+        args.generated_dir / "stations.json",
         errors,
     )
+    airports = validate_airports(
+        args.generated_dir / "airports.json",
+        errors,
+    )
+    railway_counts, railway_journeys = validate_journeys(
+        args.source_dir / "journeys-railway.json",
+        "train",
+        stations,
+        airports,
+        errors,
+    )
+    flight_counts, flight_journeys = validate_journeys(
+        args.source_dir / "journeys-flight.json",
+        "flight",
+        stations,
+        airports,
+        errors,
+    )
+    duplicate_journey_ids = set(railway_journeys) & set(flight_journeys)
+    require(
+        not duplicate_journey_ids,
+        f"journey ids occur in both files: {sorted(duplicate_journey_ids)}",
+        errors,
+    )
+    journey_counts = railway_counts + flight_counts
+    journeys = {**railway_journeys, **flight_journeys}
     route_count, route_coordinates = validate_routes(
-        args.generated_dir / "journey-routes.json",
+        args.generated_dir / "routes.json",
         journeys,
         errors,
     )
     railway_lines, railway_coordinates = validate_railways(
-        args.generated_dir / "railways.json",
-        errors,
-    )
-    passenger_station_count, passenger_station_levels = validate_passenger_stations(
-        args.generated_dir / "passenger-stations.json",
+        args.generated_dir / "railways.geojson",
         errors,
     )
     province_features, province_coordinates = validate_boundaries(
@@ -604,18 +679,26 @@ def main() -> None:
             print(f"  - {error}")
         raise SystemExit(1)
 
-    location_counts = Counter(item["type"] for item in locations.values())
+    station_names = {
+        stop
+        for journey in railway_journeys.values()
+        for stop in journey.get("stops") or []
+    }
+    airport_names = {
+        stop
+        for journey in flight_journeys.values()
+        for stop in journey.get("stops") or []
+    }
     print(
         "Data valid: "
-        f"{location_counts['station']} stations, "
-        f"{location_counts['airport']} airports, "
+        f"{len(station_names)} journey stations, "
+        f"{len(airport_names)} journey airports, "
         f"{journey_counts['train']} train journeys, "
         f"{journey_counts['flight']} flights, "
-        f"{len(places)} OSM-derived places, "
         f"{route_count} routed journeys / {route_coordinates} route coordinates, "
         f"{railway_lines} railway lines / {railway_coordinates} coordinates, "
-        f"{passenger_station_count} passenger stations "
-        f"{dict(passenger_station_levels)}, "
+        f"{len(stations)} passenger stations {dict(station_levels)}, "
+        f"{len(airports)} passenger airports, "
         f"{province_features} province map features / "
         f"{province_coordinates} coordinates."
     )

@@ -1,36 +1,30 @@
 "use strict";
 
-function getJourneySymbol(mode, code, start, end) {
-  if (mode === "flight") {
-    const reversed = end[0] - start[0] < 0 ? "-reverse" : "";
-    return `image://./assets/images/plane${reversed}.png`;
-  }
-
+function getTrainCategory(code) {
   const prefix = typeof code === "string" ? code.charAt(0).toUpperCase() : "";
   if (prefix === "G") {
-    return "image://./assets/images/train-g.png";
+    return "highspeed";
   }
   if (prefix === "D" || prefix === "C") {
-    return "image://./assets/images/train-d.png";
+    return "emu";
   }
-  if (["K", "Y", "Z", "T"].includes(prefix)) {
-    return "image://./assets/images/train-conventional.png";
-  }
-  return "arrow";
+  return "conventional";
 }
 
-function getJourneySymbolSize(mode, code) {
-  if (mode === "flight") {
-    return [30, 30];
-  }
-  const prefix = typeof code === "string" ? code.charAt(0).toUpperCase() : "";
-  if (prefix === "G" || prefix === "D" || prefix === "C") {
-    return [30, 30];
-  }
-  if (["K", "Y", "Z", "T"].includes(prefix)) {
-    return [30, 30];
-  }
-  return [16, 16];
+function getTrainIconId(code) {
+  return {
+    highspeed: "train-g",
+    emu: "train-cd",
+    conventional: "train-ktyz",
+  }[getTrainCategory(code)];
+}
+
+function getTrainSpeedUnit(code) {
+  return {
+    highspeed: 3,
+    emu: 2,
+    conventional: 1,
+  }[getTrainCategory(code)];
 }
 
 function normalizeStationName(value) {
@@ -39,6 +33,14 @@ function normalizeStationName(value) {
     .toLocaleLowerCase("zh-CN")
     .replace(/[\s·•（）()\-—_/]/g, "")
     .replace(/(?:火车站|铁路车站|高铁站|railwaystation|station|站)$/i, "");
+}
+
+function normalizeAirportName(value) {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .toLocaleLowerCase("zh-CN")
+    .replace(/[\s·•（）()\-—_/]/g, "")
+    .replace(/(?:国际机场|机场|航空港|internationalairport|airport)$/i, "");
 }
 
 function coordinateDistanceKm(first, second) {

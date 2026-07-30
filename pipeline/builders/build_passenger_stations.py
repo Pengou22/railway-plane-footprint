@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial import cKDTree
 
-from build_places import candidate_names, geometry_center, iter_features
+from geojson_utils import candidate_names, geometry_center, iter_features
 
 PROJECT_TOOLS = Path(__file__).resolve().parents[1] / "tools"
 if str(PROJECT_TOOLS) not in sys.path:
@@ -135,10 +135,7 @@ def explicitly_non_mainline(properties: dict) -> bool:
     )
 
 
-def passenger_evidence(
-    properties: dict,
-    forced_project_station: bool,
-) -> tuple[str, str] | None:
+def passenger_evidence(properties: dict) -> tuple[str, str] | None:
     if str(properties.get("passenger", "")).lower() in PASSENGER_VALUES:
         return "confirmed", f"passenger={properties['passenger']}"
     if properties.get("railway") == "halt":
@@ -149,18 +146,7 @@ def passenger_evidence(
         in PUBLIC_TRANSPORT_STATION_VALUES
     ):
         return "confirmed", "train=yes + public_transport=station"
-    if forced_project_station:
-        return "confirmed", "project journey station"
     return None
-
-
-def load_project_station_ids(path: Path) -> set[str]:
-    document = json.loads(path.read_text(encoding="utf-8-sig"))
-    return {
-        str(location["osmId"])
-        for location in document.get("locations") or []
-        if location.get("type") == "station" and location.get("osmId")
-    }
 
 
 def load_passenger_name_index(path: Path | None) -> dict[str, dict]:
@@ -304,7 +290,6 @@ def build_catalog(
     station_features: Path,
     railway_features: Path,
     china_boundary: Path,
-    locations: Path,
     passenger_whitelist: Path | None,
     maximum_rail_distance_km: float,
     duplicate_radius_km: float,
@@ -315,7 +300,6 @@ def build_catalog(
         raise ValueError("No railway=rail coordinates were found")
     rail_tree = cKDTree(unit_sphere(rail_points))
     china_polygons = load_china_polygons(china_boundary)
-    project_station_ids = load_project_station_ids(locations)
     passenger_name_index = load_passenger_name_index(passenger_whitelist)
 
     raw_candidates = []
@@ -348,8 +332,6 @@ def build_catalog(
             continue
         else:
             passenger_station = None
-        forced_project_station = str(osm_id) in project_station_ids
-
         if (
             explicitly_non_heavy_rail(properties)
             if passenger_station is not None
@@ -370,7 +352,7 @@ def build_catalog(
                 else None
             )
         else:
-            evidence = passenger_evidence(properties, forced_project_station)
+            evidence = passenger_evidence(properties)
         if evidence is None:
             continue
 
@@ -495,7 +477,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--stations", type=Path, required=True)
     parser.add_argument("--railways", type=Path, required=True)
     parser.add_argument("--china-boundary", type=Path, required=True)
-    parser.add_argument("--locations", type=Path, required=True)
     parser.add_argument("--passenger-whitelist", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--snapshot", required=True)
@@ -510,7 +491,6 @@ def main() -> None:
         args.stations,
         args.railways,
         args.china_boundary,
-        args.locations,
         args.passenger_whitelist,
         args.maximum_rail_distance_km,
         args.duplicate_radius_km,

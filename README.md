@@ -2,13 +2,13 @@
 
 一个用于记录个人铁路与航空历史行程的交互式地图。
 
-页面以 ECharts 中国地图为基础，叠加经过离线筛选和简化的
-OpenStreetMap 全国铁路网。车站、机场坐标直接由 OSM 生成，铁路足迹通过
-带车型偏好的 A* 寻路沿真实铁路网络绘制。
+页面以 MapLibre GL 的 WebGL 地图为基础，将省域、经过离线筛选和简化的
+OpenStreetMap 全国铁路网以及历史足迹绘制为地图图层。车站、机场坐标直接由
+OSM 生成，铁路足迹通过带车型偏好的 A* 寻路沿真实铁路网络绘制。
 
-左侧控制栏可开关全国铁路网，并按铁路/航空、年份和月份筛选行程。右侧历史
-行程面板支持悬停临时加粗、点击固定加粗真实路线。“录入行程”窗口可用中文
-站名生成数据更新包。底图采用可交互的详细省域边界。
+左侧抽屉默认收起，展开后可开关全国铁路网、按年份和月份筛选并连续浏览历史
+行程。行程卡片支持悬停临时加粗、点击多选锁定真实路线。底图采用可交互的
+详细省域边界。
 
 ## 本地预览
 
@@ -22,31 +22,26 @@ D:\Anaconda\python.exe -m http.server 8000
 
 ## 目录结构
 
-- `assets/`：网页直接加载的样式、脚本、图片和 ECharts；
-- `data/source/`：人工维护的行程、地点和客运站白名单；
+- `assets/`：网页直接加载的样式、脚本、图片和 MapLibre GL；
+- `data/source/`：人工维护的铁路/航空行程和客运站白名单；
 - `data/generated/`：构建脚本生成、网页直接读取的数据；
 - `data/raw/`：OSM PBF 和省域边界原始输入；
-- `pipeline/`：完整构建流程、数据导入和校验工具；
+- `pipeline/`：完整构建流程、数据生成和校验工具；
 - `docs/`：数据格式、构建说明和开发记录；
 - `references/`：不参与当前网页运行的第三方参考项目；
 - `archive/`：保留但不参与当前构建的旧铁路中间数据。
 
 ## 更新个人行程
 
-日常只需要编辑两份源数据：
+铁路与航空行程分别维护：
 
-- `data/source/locations.json`：车站和机场的名称及 OSM 绑定，不保存人工坐标；
-- `data/source/journeys.json`：铁路与航空行程，`stops` 直接按顺序填写中文地点名称。
+- `data/source/journeys-railway.json`：铁路行程，`stops` 按顺序填写中文车站名；
+- `data/source/journeys-flight.json`：航空行程，`stops` 按顺序填写中文机场名。
+
+名称会直接解析到 `stations.json` 或 `airports.json`。正式名称优先于别名；
+若仍有多个同名候选，需在行程中改用能唯一匹配的正式名称。
 
 字段格式和编辑示例见 [`docs/data-format.md`](docs/data-format.md)。
-
-也可以点击页面左侧“录入新行程”。静态页面会下载一个更新包，导入命令为：
-
-```powershell
-D:\Anaconda\python.exe pipeline\tools\import_journey_bundle.py <更新包.json>
-```
-
-导入后运行完整铁路构建脚本，新增行程才会获得实际轨道路线。
 
 编辑后运行数据校验：
 
@@ -61,11 +56,11 @@ D:\Anaconda\python.exe pipeline\tools\validate_data.py
 1. 从中国 OSM PBF 中筛选 `railway=rail`；
 2. 提取火车站、机场及稳定 OSM 元素 ID；
 3. 解析 `station_name.js` 客运站白名单，并与原始 OSM 站点匹配；
-4. 生成当前 OSM 快照中的地点坐标；
+4. 生成全国客运铁路站与民航客运机场目录；
 5. 构建包含道岔和站线的铁路拓扑图；
-6. 根据 G/C、D、普速等车型偏好，为每段行程执行 A* 寻路；
-7. 生成白名单确认、OSM 提供坐标的全国客运站目录；
-8. 生成铁路底图、地点坐标和实际轨道足迹。
+6. 根据 G、C/D、普速等车型偏好，为每段行程执行 A* 寻路；
+7. 排除通用航空、私人和停用机场；
+8. 生成铁路底图、全国车站/机场目录和实际轨道足迹。
 
 把新的中国 PBF 放入 `data/raw/osm/`，然后运行：
 
@@ -77,10 +72,10 @@ powershell -ExecutionPolicy Bypass -File pipeline/build.ps1 `
 
 原始 PBF、旧铁路实验数据和 `data/cache` 均被 Git 忽略。构建产物为：
 
-- `data/generated/places.json`：OSM 生成的车站与机场坐标；
-- `data/generated/passenger-stations.json`：约 3.3 千座已匹配 OSM 坐标的客运站目录；
-- `data/generated/railways.json`：约 1 MB 的铁路显示底图；
-- `data/generated/journey-routes.json`：约 264 KB 的实际轨道足迹；
+- `data/generated/stations.json`：约 3.3 千座已匹配 OSM 坐标的全国客运站目录；
+- `data/generated/airports.json`：从 OSM 筛选并排除通用航空等对象的全国客运机场目录；
+- `data/generated/railways.geojson`：约 0.82 MB、由 MapLibre 工作线程直接读取的铁路显示图层；
+- `data/generated/routes.json`：约 0.27 MB 的实际轨道足迹；
 - `data/generated/admin-boundaries-province.json`：省域可交互面。
 
 更完整的构建说明见

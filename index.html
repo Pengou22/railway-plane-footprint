@@ -9,6 +9,7 @@
     />
     <title>空铁足迹</title>
     <link rel="icon" href="assets/images/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="assets/vendor/maplibre-gl.css" />
     <link rel="stylesheet" href="assets/css/control-panel.css" />
   </head>
   <body>
@@ -25,75 +26,94 @@
         <p id="journey-summary">正在整理旅程……</p>
       </header>
 
-      <section id="map-controls" aria-label="地图图层控制">
-        <p class="control-label">地图显示</p>
-
-        <label class="toggle-row" for="railway-layer-toggle">
-          <input id="railway-layer-toggle" type="checkbox" checked />
-          <span class="toggle-track" aria-hidden="true">
-            <span class="toggle-thumb"></span>
-          </span>
-          <span>全国铁路网</span>
-        </label>
-
+      <section id="map-controls" aria-label="地图与行程控制">
         <button
-          id="journey-filter-toggle"
-          class="filter-toggle"
+          id="map-controls-toggle"
+          class="control-drawer-toggle"
           type="button"
           aria-expanded="false"
-          aria-controls="journey-filter-panel"
+          aria-controls="map-controls-content"
+          aria-label="展开地图控制栏"
         >
-          <span>行程筛选</span>
-          <span class="filter-arrow" aria-hidden="true">⌄</span>
+          <span class="control-drawer-arrow" aria-hidden="true">›</span>
         </button>
 
-        <div id="journey-filter-panel" hidden>
-          <div class="filter-field">
-            <span>交通方式</span>
-            <span id="mode-switch" class="segmented-control">
+        <div
+          id="map-controls-content"
+          class="control-drawer-content"
+          aria-hidden="true"
+          inert
+        >
+          <div class="map-display-controls">
+            <p class="control-label">地图显示</p>
+
+            <label class="toggle-row" for="railway-layer-toggle">
+              <input id="railway-layer-toggle" type="checkbox" checked />
+              <span class="toggle-track" aria-hidden="true">
+                <span class="toggle-thumb"></span>
+              </span>
+              <span>全国铁路网</span>
+            </label>
+
+            <label class="toggle-row" for="via-station-toggle">
+              <input id="via-station-toggle" type="checkbox" />
+              <span class="toggle-track" aria-hidden="true">
+                <span class="toggle-thumb"></span>
+              </span>
+              <span>显示途经车站</span>
+            </label>
+          </div>
+
+          <div class="journey-filter-toolbar" aria-label="行程筛选">
+            <span class="journey-filter-title">行程筛选</span>
+            <label>
+              <span class="visually-hidden">选择年份</span>
+              <select id="journey-year-filter" aria-label="选择年份">
+                <option value="all">年份</option>
+              </select>
+            </label>
+            <label>
+              <span class="visually-hidden">选择月份</span>
+              <select id="journey-month-filter" aria-label="选择月份">
+                <option value="all">月份</option>
+              </select>
+            </label>
+            <button
+              id="journey-filter-reset"
+              class="filter-reset"
+              type="button"
+            >
+              重置
+            </button>
+          </div>
+
+          <section id="journey-history-panel" aria-label="历史行程">
+            <div
+              id="journey-history-list"
+              class="journey-history-list"
+            ></div>
+
+            <div class="history-actions">
               <button
-                class="active"
+                id="clear-journey-highlight"
+                class="secondary-action"
                 type="button"
-                data-mode="all"
-                aria-pressed="true"
+                disabled
               >
-                全部
+                取消所有路线高亮
               </button>
-              <button type="button" data-mode="train" aria-pressed="false">
-                铁路
-              </button>
-              <button type="button" data-mode="flight" aria-pressed="false">
-                航空
-              </button>
-            </span>
-          </div>
-          <div class="filter-date-grid">
-            <label class="filter-field">
-              <span>年份</span>
-              <select id="journey-year-filter">
-                <option value="all">全部年份</option>
-              </select>
-            </label>
-            <label class="filter-field">
-              <span>月份</span>
-              <select id="journey-month-filter">
-                <option value="all">全部月份</option>
-              </select>
-            </label>
-          </div>
+            </div>
+          </section>
         </div>
       </section>
 
-      <nav id="page-actions" aria-label="行程操作">
-        <button
-          id="history-journey-button"
-          type="button"
-          aria-expanded="false"
-          aria-controls="journey-history-panel"
-        >
-          历史行程
+      <nav id="map-zoom-control" aria-label="地图缩放">
+        <button id="map-zoom-in" type="button" aria-label="放大地图" title="放大">
+          ＋
         </button>
-        <button id="add-journey-button" type="button">录入行程</button>
+        <button id="map-zoom-out" type="button" aria-label="缩小地图" title="缩小">
+          −
+        </button>
       </nav>
 
       <div id="loading-status" role="status">
@@ -116,140 +136,8 @@
       </footer>
     </main>
 
-    <dialog id="journey-dialog" aria-labelledby="journey-dialog-title">
-      <form id="journey-form">
-        <div class="dialog-heading">
-          <div>
-            <p class="eyebrow">NEW JOURNEY</p>
-            <h2 id="journey-dialog-title">录入新行程</h2>
-          </div>
-          <button
-            class="dialog-close"
-            type="button"
-            data-close-dialog
-            aria-label="关闭"
-          >
-            ×
-          </button>
-        </div>
-
-        <div class="form-grid">
-          <label>
-            <span>方式</span>
-            <select id="journey-mode" name="mode">
-              <option value="train">铁路</option>
-              <option value="flight">航空</option>
-            </select>
-          </label>
-          <label>
-            <span>日期</span>
-            <input name="date" type="date" required />
-          </label>
-          <label class="form-wide">
-            <span>车次 / 航班号</span>
-            <input
-              name="code"
-              type="text"
-              autocomplete="off"
-              placeholder="例如 G475"
-              required
-            />
-          </label>
-          <label>
-            <span>起点</span>
-            <input
-              id="journey-start"
-              name="start"
-              type="text"
-              list="journey-location-options"
-              autocomplete="off"
-              placeholder="输入中文站名"
-              required
-            />
-          </label>
-          <label>
-            <span>终点</span>
-            <input
-              id="journey-end"
-              name="end"
-              type="text"
-              list="journey-location-options"
-              autocomplete="off"
-              placeholder="输入中文站名"
-              required
-            />
-          </label>
-          <label class="form-wide">
-            <span>途经站</span>
-            <textarea
-              id="journey-via"
-              name="via"
-              rows="4"
-              placeholder="按顺序填写，一行一个；没有可留空"
-            ></textarea>
-          </label>
-          <label class="form-wide">
-            <span>备注（可选）</span>
-            <input name="note" type="text" autocomplete="off" />
-          </label>
-        </div>
-        <datalist id="journey-location-options"></datalist>
-
-        <div class="form-explainer">
-          <strong>静态网页不会直接改项目文件。</strong>
-          提交后会下载一个更新包。运行
-          <code>D:\Anaconda\python.exe pipeline\tools\import_journey_bundle.py 更新包.json</code>
-          导入，再执行铁路构建脚本，即可生成真实轨迹。
-        </div>
-        <p id="journey-form-status" role="status"></p>
-        <div class="dialog-actions">
-          <button type="button" class="secondary-action" data-close-dialog>
-            取消
-          </button>
-          <button type="submit" class="primary-action">
-            生成行程更新包
-          </button>
-        </div>
-      </form>
-    </dialog>
-
-    <aside
-      id="journey-history-panel"
-      aria-labelledby="journey-history-panel-title"
-      aria-hidden="true"
-      inert
-    >
-      <div class="history-panel-heading">
-        <div>
-          <p class="eyebrow">JOURNEY ARCHIVE</p>
-          <h2 id="journey-history-panel-title">历史行程</h2>
-        </div>
-        <button
-          class="history-panel-close"
-          type="button"
-          data-close-history
-        >
-          关闭
-        </button>
-      </div>
-
-      <p id="history-filter-summary" class="history-tip"></p>
-      <div id="journey-history-list" class="journey-history-list"></div>
-
-      <div class="history-actions">
-        <button
-          id="clear-journey-highlight"
-          class="secondary-action"
-          type="button"
-          disabled
-        >
-          取消线路高亮
-        </button>
-      </div>
-    </aside>
-
     <noscript>请启用 JavaScript 以查看行程地图。</noscript>
-    <script src="assets/vendor/echarts.js"></script>
+    <script src="assets/vendor/maplibre-gl.js"></script>
     <script src="assets/js/utils.js"></script>
     <script src="assets/js/app.js"></script>
   </body>

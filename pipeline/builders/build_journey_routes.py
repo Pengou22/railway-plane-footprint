@@ -7,7 +7,9 @@ import argparse
 import heapq
 import json
 import math
+import re
 import sys
+import unicodedata
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -77,6 +79,81 @@ class DisjointSet:
 def read_json(path: Path):
     with path.open("r", encoding="utf-8") as source:
         return json.load(source)
+
+
+def normalized_station_name(name: str) -> str:
+    value = unicodedata.normalize("NFKC", name).casefold()
+    value = re.sub(r"[\s·•（）()\-—_/]+", "", value)
+    for suffix in ("火车站", "铁路车站", "高铁站", "railwaystation", "station", "站"):
+        if value.endswith(suffix) and len(value) > len(suffix):
+            return value[: -len(suffix)]
+    return value
+
+
+def resolve_route_stations(
+    station_document: dict,
+    journeys: dict,
+) -> dict:
+    stations = station_document.get("stations")
+    if station_document.get("schemaVersion") != 1 or not isinstance(stations, list):
+        raise ValueError("stations.json must use schemaVersion 1 with a stations array")
+
+    station_lookup: dict[str, dict[str, dict]] = {}
+    for station in stations:
+        for name in [station["name"], *(station.get("aliases") or [])]:
+            normalized = normalized_station_name(name)
+            station_lookup.setdefault(normalized, {})[station["osmId"]] = station
+
+    stop_names = list(
+        dict.fromkeys(
+            stop
+            for journey in journeys.get("journeys") or []
+            if journey.get("mode") == "train"
+            for stop in journey.get("stops") or []
+        )
+    )
+    route_places = []
+    used_ids = set()
+    for name in stop_names:
+        normalized = normalized_station_name(name)
+        matches = list((station_lookup.get(normalized) or {}).values())
+        primary_matches = [
+            station
+            for station in matches
+            if normalized_station_name(station["name"]) == normalized
+        ]
+        if primary_matches:
+            matches = primary_matches
+
+        if len(matches) == 1:
+            station = matches[0]
+        elif not matches:
+            raise ValueError(f"{name}: station is missing from stations.json")
+        else:
+            options = ", ".join(
+                f"{station['osmId']} {station['name']}" for station in matches
+            )
+            raise ValueError(
+                f"{name}: ambiguous station name; use an unambiguous formal "
+                "station name in the journey. "
+                f"Candidates: {options}"
+            )
+
+        place_id = f"osm-{station['osmId']}"
+        if place_id in used_ids:
+            raise ValueError(f"{name}: duplicate route station id {place_id}")
+        used_ids.add(place_id)
+        route_places.append(
+            {
+                "id": place_id,
+                "type": "station",
+                "name": name,
+                "osmId": station["osmId"],
+                "coordinates": station["coordinates"],
+            }
+        )
+
+    return {"schemaVersion": 1, "places": route_places}
 
 
 def selected_line(feature: dict, precision: int) -> tuple[Line, dict] | None:
@@ -248,9 +325,9 @@ def choose_station_nodes(
 
 def route_profile(code: str) -> str:
     prefix = code[:1].upper()
-    if prefix in {"G", "C"}:
+    if prefix == "G":
         return "highspeed"
-    if prefix == "D":
+    if prefix in {"C", "D"}:
         return "emu"
     if prefix in {"K", "Z", "T", "Y"}:
         return "conventional"
@@ -507,8 +584,8 @@ def build_routes(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--railways", type=Path, required=True)
-    parser.add_argument("--places", type=Path, required=True)
-    parser.add_argument("--journeys", type=Path, required=True)
+    parser.add_argument("--stations", type=Path, required=True)
+    parser.add_argument("--railway-journeys", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--precision", type=int, default=7)
     parser.add_argument("--snap-candidates", type=int, default=16)
@@ -521,8 +598,12 @@ def main() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     args = parse_args()
-    places = read_json(args.places)
-    journeys = read_json(args.journeys)
+    station_document = read_json(args.stations)
+    journeys = read_json(args.railway_journeys)
+    places = resolve_route_stations(
+        station_document,
+        journeys,
+    )
 
     print("Pass 1/2: indexing railway coordinates")
     occurrences, feature_count = coordinate_occurrences(

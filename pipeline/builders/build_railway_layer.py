@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a compact ECharts railway layer from Osmium GeoJSON Sequence."""
+"""Build a compact MapLibre GeoJSON railway layer from Osmium GeoJSON Sequence."""
 
 from __future__ import annotations
 
@@ -217,8 +217,13 @@ def build_layer(
             item["coords"][0],
         )
     )
+    category_lines: dict[str, list[list[list[float]]]] = defaultdict(list)
+    for line in output_lines:
+        category_lines[line["category"]].append(line["coords"])
+
     document = {
-        "schemaVersion": 1,
+        "type": "FeatureCollection",
+        "schemaVersion": 2,
         "source": {
             "provider": "OpenStreetMap contributors",
             "license": "ODbL-1.0",
@@ -227,8 +232,21 @@ def build_layer(
             "simplifyToleranceDegrees": tolerance,
             "coordinatePrecision": precision,
             "minimumLengthKm": min_length_km,
+            "lineCount": len(output_lines),
+            "coordinateCount": coordinate_count,
         },
-        "lines": output_lines,
+        "features": [
+            {
+                "type": "Feature",
+                "properties": {"category": line_category},
+                "geometry": {
+                    "type": "MultiLineString",
+                    "coordinates": category_lines[line_category],
+                },
+            }
+            for line_category in ("conventional", "highspeed")
+            if category_lines[line_category]
+        ],
     }
     stats = {
         "inputFeatures": input_features,
